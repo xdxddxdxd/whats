@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { processUploadedChatFile } from '@/lib/parser/zip-helper';
 
 interface IncrementalUpdateModalProps {
   isOpen: boolean;
@@ -21,21 +22,35 @@ export const IncrementalUpdateModal: React.FC<IncrementalUpdateModalProps> = ({
   onSuccess,
 }) => {
   const [file, setFile] = useState<File | null>(null);
+  const [displayFileName, setDisplayFileName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isExtractingZip, setIsExtractingZip] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const rawFile = e.target.files[0];
       setError(null);
       setSuccessMsg(null);
+      setIsExtractingZip(true);
+
+      try {
+        const { file: extractedFile, originalFileName } = await processUploadedChatFile(rawFile);
+        setFile(extractedFile);
+        setDisplayFileName(originalFileName);
+      } catch (err: any) {
+        setError(err.message || 'Dosya seçilirken hata oluştu.');
+        setFile(null);
+      } finally {
+        setIsExtractingZip(false);
+      }
     }
   };
 
   const handleUpdate = async () => {
     if (!file) {
-      setError('Lütfen güncel WhatsApp .txt export dosyasını seçin.');
+      setError('Lütfen güncel WhatsApp export dosyasını (.txt veya iPhone .zip) seçin.');
       return;
     }
 
@@ -76,25 +91,34 @@ export const IncrementalUpdateModal: React.FC<IncrementalUpdateModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Sohbeti Güncelle (Artımlı Analiz) 🔄"
-      subtitle="Yeni dışa aktardığınız .txt dosyasını yükleyin, sadece yeni mesajlar analiz edilsin."
+      subtitle="Yeni dışa aktardığınız dosyayı (.txt veya iPhone .zip) yükleyin, sadece yeni mesajlar analiz edilsin."
     >
       <div className="space-y-4">
         <div className="border-2 border-dashed border-[#E5E9F0] rounded-2xl p-6 text-center hover:border-[#38BDF8] transition-colors bg-[#F7F9FC]">
           <input
             type="file"
-            accept=".txt"
+            accept=".txt,.zip,application/zip,application/x-zip-compressed,multipart/x-zip,text/plain"
             id="update-file-input"
             className="hidden"
             onChange={handleFileChange}
           />
           <label htmlFor="update-file-input" className="cursor-pointer block">
-            <Upload className="w-8 h-8 text-[#0284C7] mx-auto mb-2" />
-            <span className="text-sm font-bold text-[#0A0A0A] block">
-              {file ? file.name : 'Yeni .txt dosyasını seçin veya sürükleyin'}
-            </span>
-            <span className="text-xs text-[#6B7280] mt-1 block">
-              {file ? `${(file.size / 1024).toFixed(1)} KB` : 'Yalnızca WhatsApp dışa aktarımı (.txt)'}
-            </span>
+            {isExtractingZip ? (
+              <div className="flex flex-col items-center space-y-2 py-2">
+                <Loader2 className="w-8 h-8 text-[#0284C7] animate-spin" />
+                <span className="text-xs font-semibold text-[#0A0A0A]">ZIP açılıyor...</span>
+              </div>
+            ) : (
+              <>
+                <Upload className="w-8 h-8 text-[#0284C7] mx-auto mb-2" />
+                <span className="text-sm font-bold text-[#0A0A0A] block">
+                  {displayFileName || (file ? file.name : 'Yeni .txt veya iPhone .zip seçin')}
+                </span>
+                <span className="text-xs text-[#6B7280] mt-1 block">
+                  {file ? `${(file.size / 1024).toFixed(1)} KB` : 'WhatsApp dışa aktarımı (.txt veya .zip)'}
+                </span>
+              </>
+            )}
           </label>
         </div>
 
@@ -120,7 +144,7 @@ export const IncrementalUpdateModal: React.FC<IncrementalUpdateModalProps> = ({
           <Button variant="ghost" onClick={onClose} disabled={isLoading}>
             İptal
           </Button>
-          <Button variant="primary" onClick={handleUpdate} isLoading={isLoading} disabled={!file}>
+          <Button variant="primary" onClick={handleUpdate} isLoading={isLoading} disabled={!file || isExtractingZip}>
             Güncellemeyi Başlat
           </Button>
         </div>
