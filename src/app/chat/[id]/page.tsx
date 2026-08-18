@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Sparkles, ShieldAlert, ArrowLeft, Award, BarChart3 } from 'lucide-react';
+import { Sparkles, ShieldAlert, ArrowLeft, Award } from 'lucide-react';
 import { getClientOwnerToken, getClientGuestSession } from '@/lib/utils/session';
 import { formatNumber } from '@/lib/utils/formatters';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
@@ -57,7 +57,12 @@ export default function ChatDashboardPage() {
       if (clientOwnerToken) queryParams.append('owner_token', clientOwnerToken);
       if (guestToken) queryParams.append('guest_token', guestToken);
 
-      const res = await fetch(`/api/chats/${chatId}?${queryParams.toString()}`);
+      const res = await fetch(`/api/chats/${chatId}?${queryParams.toString()}`, {
+        headers: {
+          ...(clientOwnerToken ? { 'x-owner-token': clientOwnerToken } : {}),
+          ...(guestToken ? { 'x-guest-token': guestToken } : {})
+        }
+      });
       const data = await res.json();
 
       if (!res.ok) {
@@ -85,7 +90,10 @@ export default function ChatDashboardPage() {
     try {
       const res = await fetch(`/api/chats/${chatId}/analyze`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-owner-token': ownerToken
+        },
         body: JSON.stringify({ owner_token: ownerToken })
       });
       if (res.ok) {

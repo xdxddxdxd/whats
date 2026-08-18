@@ -1,4 +1,4 @@
-import { ParsedMessage } from '../parser/whatsapp-parser';
+import { ChatMetrics } from '../analytics/stats-engine';
 
 export interface ParticipantStat {
   name: string;
@@ -11,6 +11,7 @@ export interface ParticipantStat {
   emojiCount: number;
   topEmojis: { emoji: string; count: number }[];
   nightMessages: number; // 00:00 - 05:00
+  earlyMessages: number; // 05:00 - 09:00
   nightPercentage: number;
   avgResponseTimeMinutes: number | null;
   monologues: number; // 3+ messages sent in succession
@@ -165,8 +166,8 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
     totalWords += words;
     totalCharacters += chars;
 
-    // Exclamation / excitement tracker
-    const exclamations = (text.match(/!|\?|sjsj|asdf|hah/gi) || []).length;
+    // Exclamation / laugh / excitement tracker
+    const exclamations = (text.match(/[!?]|(?:(?:ha){2,})|(?:(?:he){2,})|(?:(?:sj){2,})|[a-zA-ZçğıöşüÇĞİÖŞÜ]{8,}/gi) || []).length;
     p.exclamationCount += exclamations;
 
     // Emoji extraction
@@ -178,10 +179,10 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
       globalEmojiCounts[emoji] = (globalEmojiCounts[emoji] || 0) + 1;
     }
 
-    // Time & Date stats
+    // Local Time & Date stats (avoid UTC off-by-one)
     const hour = msgDate.getHours();
     const day = msgDate.getDay();
-    const dateStr = msgDate.toISOString().split('T')[0];
+    const dateStr = `${msgDate.getFullYear()}-${String(msgDate.getMonth() + 1).padStart(2, '0')}-${String(msgDate.getDate()).padStart(2, '0')}`;
 
     hourlyCounts[hour]++;
     dailyCounts[day]++;
@@ -253,6 +254,7 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
       emojiCount: p.emojiCount,
       topEmojis,
       nightMessages: p.nightMessages,
+      earlyMessages: p.earlyMessages,
       nightPercentage: p.messageCount > 0 ? Math.round((p.nightMessages / p.messageCount) * 1000) / 10 : 0,
       avgResponseTimeMinutes,
       monologues: p.monologues,
@@ -309,7 +311,7 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
 
   // Superlatives / Personalities rule computations
   const sortedByNight = [...participantStats].sort((a, b) => b.nightMessages - a.nightMessages);
-  const sortedByEarly = [...Object.values(participantMap)].sort((a, b) => b.earlyMessages - a.earlyMessages);
+  const sortedByEarly = [...participantStats].sort((a, b) => b.earlyMessages - a.earlyMessages);
   const sortedByAvgWords = [...participantStats].sort((a, b) => b.avgWordsPerMessage - a.avgWordsPerMessage);
   const sortedByMonologues = [...participantStats].sort((a, b) => b.monologues - a.monologues);
   const sortedByStarters = [...participantStats].sort((a, b) => b.conversationStarters - a.conversationStarters);

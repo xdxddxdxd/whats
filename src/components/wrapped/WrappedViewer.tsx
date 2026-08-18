@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Download, Pause } from 'lucide-react';
+import { X, Download, Pause, Share2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { WrappedSlideData } from '@/lib/ai/types';
 import { WrappedSlide } from './WrappedSlide';
@@ -31,6 +31,7 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
   const requestRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const pausedTimeRef = useRef<number>(0);
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const triggerConfetti = () => {
     try {
@@ -116,12 +117,35 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
   }, [isOpen, isPaused, currentIndex, nextSlide, slides.length]);
 
   const handlePointerDown = () => {
-    setIsPaused(true);
+    holdTimerRef.current = setTimeout(() => {
+      setIsPaused(true);
+    }, 180);
   };
 
   const handlePointerUp = () => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
     setIsPaused(false);
     startTimeRef.current = null;
+  };
+
+  const handleShare = async () => {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `${chatTitle} ✦ WHATS Wrapped 2026`,
+          text: `"${chatTitle}" sohbetimizin 2026 Wrapped analizi ve grup unvanları hazır! 🎉🍿`,
+          url: window.location.href,
+        });
+      } catch {
+        // Share cancelled or not supported
+      }
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      alert('Sohbet linki panoya kopyalandı! 📋');
+    }
   };
 
   if (!isOpen || slides.length === 0) return null;
@@ -173,7 +197,7 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
           {/* Top Bar Actions */}
           <div className="flex items-center justify-between text-white">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold font-serif tracking-wider uppercase opacity-90 truncate max-w-[180px]">
+              <span className="text-xs font-bold font-serif tracking-wider uppercase opacity-90 truncate max-w-[150px]">
                 {chatTitle}
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#141414] text-[#7DD3FC] border border-[#38BDF8]/30 font-mono">
@@ -182,6 +206,17 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleShare();
+                }}
+                className="p-2 rounded-full bg-[#141414] border border-white/10 hover:border-[#38BDF8] text-white transition-colors"
+                title="Paylaş"
+              >
+                <Share2 className="w-4 h-4 text-[#7DD3FC]" />
+              </button>
+
               <button
                 onClick={(e) => {
                   e.stopPropagation();

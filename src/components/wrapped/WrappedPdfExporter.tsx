@@ -135,14 +135,17 @@ export const WrappedPdfExporter: React.FC<WrappedPdfExporterProps> = ({
         </div>
       </div>
 
-      {/* Hidden off-screen container */}
+      {/* Safari & Mobile Safe off-screen container */}
       <div
         ref={containerRef}
         style={{
-          position: 'absolute',
-          left: '-9999px',
-          top: '-9999px',
+          position: 'fixed',
+          left: 0,
+          top: 0,
           width: '540px',
+          zIndex: -999,
+          opacity: 0,
+          pointerEvents: 'none',
         }}
       >
         {slides.map((slide, idx) => (
