@@ -10,7 +10,7 @@ export function generateSmartRuleBasedAnalysis(
   const topParticipant = participants[0] || { name: 'Grup Üyesi', messageCount: 0, messagePercentage: 0 };
   const secondParticipant = participants[1] || topParticipant;
 
-  // Build Superlative Cards with rich sample quotes & sample words (clean 3-color styling)
+  // Build Superlative Cards with actual real messages from chat
   const superlatives: SuperlativeCard[] = [
     {
       id: 'night_owl',
@@ -18,14 +18,9 @@ export function generateSmartRuleBasedAnalysis(
       winner: calculatedSuperlatives.nightOwl.name,
       badge: '🌙',
       color: 'bg-white text-[#0A0A0A] border-[#E5E9F0]',
-      description: `${calculatedSuperlatives.nightOwl.name}, herkes uyurken saat 00:00 - 05:00 arasında grubu ayakta tuttu.`,
-      quote: '"Uyumayan var mı ya bir şey anlatıcam..."',
-      sampleQuotes: [
-        '"Uyumayan var mı ya bir şey anlatıcam..."',
-        '"Gece gece kafama takıldı baksanıza"',
-        '"Ben yine sabahladım iyi mi"'
-      ],
-      sampleWords: ['gece', 'uyku', 'uyumayan', 'sabahladım', 'bakar mısınız', 'ses'],
+      description: `${calculatedSuperlatives.nightOwl.name}, gece 00:00 - 05:00 saatleri arasında grubu ayakta tuttu.`,
+      quote: calculatedSuperlatives.nightOwl.sampleMessages[0] || '"Gece mesajları..."',
+      sampleQuotes: calculatedSuperlatives.nightOwl.sampleMessages,
       statLabel: 'Gece Mesajı',
       statValue: `${calculatedSuperlatives.nightOwl.count} adet`
     },
@@ -35,14 +30,9 @@ export function generateSmartRuleBasedAnalysis(
       winner: calculatedSuperlatives.earlyBird.name,
       badge: '☕',
       color: 'bg-white text-[#0A0A0A] border-[#E5E9F0]',
-      description: `Sabahın ilk ışıklarında grupta günaydın mesajıyla ilk kıvılcımı çakan isim.`,
-      quote: '"Günaydın millet hayırlı işler!"',
-      sampleQuotes: [
-        '"Günaydın millet hayırlı işler!"',
-        '"Gününüz güzel geçsin kahveler hazır mı"',
-        '"Erken kalkan yol alır selamlar"'
-      ],
-      sampleWords: ['günaydın', 'sabah', 'kahve', 'erken', 'mesai', 'gününüz'],
+      description: `Sabahın ilk ışıklarında (05:00 - 09:00) sohbette ilk kıvılcımı çakan isim.`,
+      quote: calculatedSuperlatives.earlyBird.sampleMessages[0] || '"Sabah mesajları..."',
+      sampleQuotes: calculatedSuperlatives.earlyBird.sampleMessages,
       statLabel: 'Sabah Mesajı',
       statValue: `${calculatedSuperlatives.earlyBird.count} adet`
     },
@@ -52,14 +42,9 @@ export function generateSmartRuleBasedAnalysis(
       winner: calculatedSuperlatives.ghost.name,
       badge: '🫥',
       color: 'bg-white text-[#0A0A0A] border-[#E5E9F0]',
-      description: `Mesajları okuyup 3 iş günü sonra "Aa görmemişim" deme sanatının ustası.`,
-      quote: '"Yaa kusura bakmayın bildirim gelmemiş..."',
-      sampleQuotes: [
-        '"Yaa kusura bakmayın bildirim gelmemiş..."',
-        '"Şimdi gördüm mesajları kusura bakmayın"',
-        '"Telefon sessizdeydi yeni bakabildim"'
-      ],
-      sampleWords: ['görmemişim', 'bildirim', 'sessizde', 'kusura', 'yeni gördüm', 'yoğundum'],
+      description: `Mesajları okuyup ortalama ${calculatedSuperlatives.ghost.avgMins} dakika sonra cevap veren gizemli karakter.`,
+      quote: calculatedSuperlatives.ghost.sampleMessages[0] || '"Sonradan gelen cevaplar..."',
+      sampleQuotes: calculatedSuperlatives.ghost.sampleMessages,
       statLabel: 'Ortalama Yanıt',
       statValue: `${calculatedSuperlatives.ghost.avgMins} dk`
     },
@@ -69,14 +54,9 @@ export function generateSmartRuleBasedAnalysis(
       winner: calculatedSuperlatives.speedster.name,
       badge: '🏎️',
       color: 'bg-white text-[#0A0A0A] border-[#E5E9F0]',
-      description: `Telefonu eline yapışık gezen, mesaj bildirimine ışık hızında basan grup kalkanı.`,
-      quote: '"Gördüm yazdım geldim!"',
-      sampleQuotes: [
-        '"Gördüm yazdım geldim!"',
-        '"Aynen öyle tam da bunu diyordum"',
-        '"Hemen bakıyorum 1 saniye"'
-      ],
-      sampleWords: ['geldim', 'hemen', 'aynen', 'gördüm', 'yazdım', 'burdayım'],
+      description: `Mesaj bildirimine ışık hızında (${calculatedSuperlatives.speedster.avgMins} dk) basan sohbet kalkanı.`,
+      quote: calculatedSuperlatives.speedster.sampleMessages[0] || '"Işık hızında cevaplar..."',
+      sampleQuotes: calculatedSuperlatives.speedster.sampleMessages,
       statLabel: 'Hızlı Cevap',
       statValue: `${calculatedSuperlatives.speedster.avgMins} dk`
     },
@@ -86,14 +66,9 @@ export function generateSmartRuleBasedAnalysis(
       winner: calculatedSuperlatives.impatient.name,
       badge: '⏳',
       color: 'bg-white text-[#0A0A0A] border-[#E5E9F0]',
-      description: `Kimse cevap vermeyince arka arkaya 5 mesaj atıp grupta panik havası yaratan kişi.`,
-      quote: '"Bakar mısınız?? Heyy ordasınız dimi"',
-      sampleQuotes: [
-        '"Bakar mısınız?? Heyy ordasınız dimi"',
-        '"Cevap versenize alo nerdesiniz"',
-        '"Kimse yok mu grupta ya"'
-      ],
-      sampleWords: ['alo', 'baksanıza', 'nerdesiniz', 'cevap', 'heyy', 'kimse'],
+      description: `Cevap beklemeden art arda mesaj yağdıran seri mesaj rekortmeni (${calculatedSuperlatives.impatient.count} kez).`,
+      quote: calculatedSuperlatives.impatient.sampleMessages[0] || '"Seri mesajlar..."',
+      sampleQuotes: calculatedSuperlatives.impatient.sampleMessages,
       statLabel: 'Seri Mesaj',
       statValue: `${calculatedSuperlatives.impatient.count} kez`
     },
@@ -103,14 +78,9 @@ export function generateSmartRuleBasedAnalysis(
       winner: calculatedSuperlatives.starter.name,
       badge: '📢',
       color: 'bg-white text-[#0A0A0A] border-[#E5E9F0]',
-      description: `Grup saatlerce sessiz kalınca "Şimdi size ne anlatcam dinleyin" diyerek bombayı patlatan lider.`,
-      quote: '"Bi durun bomba bir olay oldu"',
-      sampleQuotes: [
-        '"Bi durun bomba bir olay oldu"',
-        '"Şimdi size ne anlatcam dinleyin hazır olun"',
-        '"Ses kaydı atıyorum 3 dakikalık"'
-      ],
-      sampleWords: ['bomba', 'anlatcam', 'dinleyin', 'olay', 'ses kaydı', 'duydunuz mu'],
+      description: `Sessizlik uzayınca ilk mesajı atıp sohbeti başlatan lider (${calculatedSuperlatives.starter.count} kez).`,
+      quote: calculatedSuperlatives.starter.sampleMessages[0] || '"Konuyu açan mesaj..."',
+      sampleQuotes: calculatedSuperlatives.starter.sampleMessages,
       statLabel: 'Muhabbet Başlatma',
       statValue: `${calculatedSuperlatives.starter.count} kez`
     },
@@ -120,14 +90,9 @@ export function generateSmartRuleBasedAnalysis(
       winner: calculatedSuperlatives.emojiMonarch.name,
       badge: '✨',
       color: 'bg-white text-[#0A0A0A] border-[#E5E9F0]',
-      description: `Cümle kurmaya üşenip tüm derdini farklı emoji kombinasyonlarıyla anlatan duygu insanı.`,
-      quote: topEmojis[0]?.emoji ? `${topEmojis[0].emoji} ${topEmojis[0].emoji} ${topEmojis[0].emoji}` : '🔥 ✨ 😎',
-      sampleQuotes: [
-        topEmojis[0]?.emoji ? `${topEmojis[0].emoji}${topEmojis[0].emoji}${topEmojis[0].emoji} süper ya` : '🔥🔥🔥 aynen',
-        '😂😂 çok iyi yaa',
-        '💀💀 kafayı yersin'
-      ],
-      sampleWords: ['emoji', 'hahaha', 'sjsj', 'aynen', 'süper', 'efsane'],
+      description: `Toplam ${calculatedSuperlatives.emojiMonarch.count} emoji ile duygularını kelimeler yerine sembollerle anlatan kişi.`,
+      quote: calculatedSuperlatives.emojiMonarch.sampleMessages[0] || '🔥 ✨ 😎',
+      sampleQuotes: calculatedSuperlatives.emojiMonarch.sampleMessages,
       statLabel: 'Toplam Emoji',
       statValue: `${calculatedSuperlatives.emojiMonarch.count}`
     },
@@ -137,14 +102,9 @@ export function generateSmartRuleBasedAnalysis(
       winner: calculatedSuperlatives.novelist.name,
       badge: '✍️',
       color: 'bg-white text-[#0A0A0A] border-[#E5E9F0]',
-      description: `WhatsApp mesajını köşe yazısı uzunluğunda atan, paragraflara doyamayan edebiyatçı.`,
-      quote: '"Özet geçiyorum ama öncesinde detay vermem lazım..."',
-      sampleQuotes: [
-        '"Özet geçiyorum ama öncesinde detay vermem lazım..."',
-        '"Olay şöyle gelişti madde madde anlatıyorum:"',
-        '"Uzun oldu ama okuyun mutlaka önemli"'
-      ],
-      sampleWords: ['özet', 'detay', 'öncelikle', 'çünkü', 'yani', 'dolayısıyla'],
+      description: `Mesaj başına ortalama ${calculatedSuperlatives.novelist.avgWords} kelimeyle uzun soluklu yazan isim.`,
+      quote: calculatedSuperlatives.novelist.sampleMessages[0] || '"Detaylı mesajlar..."',
+      sampleQuotes: calculatedSuperlatives.novelist.sampleMessages,
       statLabel: 'Ort. Kelime/Mesaj',
       statValue: `${calculatedSuperlatives.novelist.avgWords}`
     },
@@ -155,13 +115,8 @@ export function generateSmartRuleBasedAnalysis(
       badge: '🎉',
       color: 'bg-white text-[#0A0A0A] border-[#E5E9F0]',
       description: `Gruptaki kahkaha ve heyecanı en çok körükleyen enerji lokomotifi.`,
-      quote: '"AHAHAHAH kafayı yersin süper!!"',
-      sampleQuotes: [
-        '"AHAHAHAH kafayı yersin süper!!"',
-        '"Mükemmel gün kesinlikle yapmalıyız!!"',
-        '"Valla harikasınız çok güldüm"'
-      ],
-      sampleWords: ['hahaha', 'mükemmel', 'efsane', 'süper', 'harika', 'çıldırıyorum'],
+      quote: calculatedSuperlatives.hypeTrain.sampleMessages[0] || '"Kahkaha ve heyecan..."',
+      sampleQuotes: calculatedSuperlatives.hypeTrain.sampleMessages,
       statLabel: 'Heyecan Skoru',
       statValue: `${calculatedSuperlatives.hypeTrain.exclamationCount}x`
     }

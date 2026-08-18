@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { SuperlativeCard as SuperlativeType } from '@/lib/ai/types';
-import { ChevronDown, ChevronUp, MessageSquare, Tag } from 'lucide-react';
+import { ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 
 interface SuperlativeCardProps {
   card: SuperlativeType;
@@ -12,19 +12,12 @@ interface SuperlativeCardProps {
 export const SuperlativeCard: React.FC<SuperlativeCardProps> = ({ card, index }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Fallback sample quotes and words if not present in older saved analyses
-  const sampleQuotes = card.sampleQuotes && card.sampleQuotes.length > 0
+  // Real chat messages associated with this superlative
+  const chatMessages = card.sampleQuotes && card.sampleQuotes.length > 0
     ? card.sampleQuotes
     : card.quote
     ? [card.quote]
-    : [
-        '"Bakar mısınız bir şey sorucam..."',
-        '"Aynen öyle tam dediğim gibi"',
-      ];
-
-  const sampleWords = card.sampleWords && card.sampleWords.length > 0
-    ? card.sampleWords
-    : ['mesaj', 'cevap', 'sohbet', 'grup'];
+    : [];
 
   return (
     <div
@@ -62,68 +55,39 @@ export const SuperlativeCard: React.FC<SuperlativeCardProps> = ({ card, index })
             {card.description}
           </p>
         </div>
-
-        {/* Highlighted Keywords (Compact Chips) */}
-        {!isExpanded && (
-          <div className="mt-4 flex items-center gap-1.5 flex-wrap">
-            {sampleWords.slice(0, 3).map((word, wIdx) => (
-              <span
-                key={`chip-${wIdx}-${word}`}
-                className="text-[10px] font-mono px-2 py-0.5 rounded-lg bg-white/5 text-[#7DD3FC] border border-white/5"
-              >
-                #{word}
-              </span>
-            ))}
-            {sampleWords.length > 3 && (
-              <span className="text-[10px] text-[#64748B] font-mono">
-                +{sampleWords.length - 3} kelime
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Expanded Detailed Section */}
+      {/* Expanded Detailed Section with Actual Chat Messages */}
       {isExpanded ? (
-        <div className="mt-5 pt-4 border-t border-white/10 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="mt-5 pt-4 border-t border-white/10 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
           
-          {/* Sample Chat Messages / Quotes */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-wider text-[#38BDF8]">
+          <div className="flex items-center justify-between text-[11px] font-mono font-bold uppercase tracking-wider text-[#38BDF8]">
+            <div className="flex items-center gap-1.5">
               <MessageSquare className="w-3.5 h-3.5" />
-              <span>Örnek Mesajlar & Replikler</span>
+              <span>Sohbetten Mesajlar</span>
             </div>
-            
-            <div className="space-y-1.5">
-              {sampleQuotes.map((q, qIdx) => (
-                <div
-                  key={`quote-${qIdx}`}
-                  className="p-2.5 rounded-2xl bg-[#0B0D11] border border-white/5 text-xs text-[#E2E8F0] font-sans italic leading-relaxed flex items-start gap-2"
-                >
-                  <span className="text-[#38BDF8] not-italic shrink-0 font-mono text-[10px]">💬</span>
-                  <span>{q.replace(/^["']|["']$/g, '')}</span>
-                </div>
-              ))}
-            </div>
+            <span className="text-[10px] text-[#94A3B8] font-normal lowercase">
+              {chatMessages.length > 0 ? `${chatMessages.length} kayıt` : ''}
+            </span>
           </div>
 
-          {/* Keywords / Frequent Phrases */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-wider text-[#7DD3FC]">
-              <Tag className="w-3.5 h-3.5" />
-              <span>Sık Kullanılan Kelimeler</span>
-            </div>
-            
-            <div className="flex flex-wrap gap-1.5">
-              {sampleWords.map((word, wIdx) => (
-                <span
-                  key={`expanded-word-${wIdx}`}
-                  className="px-2.5 py-1 rounded-xl bg-[#0284C7]/15 border border-[#38BDF8]/30 text-xs font-mono text-[#38BDF8]"
+          {/* Message List */}
+          <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+            {chatMessages.length > 0 ? (
+              chatMessages.map((msgText, mIdx) => (
+                <div
+                  key={`real-msg-${mIdx}`}
+                  className="p-2.5 rounded-2xl bg-[#0B0D11] border border-white/5 text-xs text-[#E2E8F0] font-sans leading-relaxed flex items-start gap-2"
                 >
-                  {word}
-                </span>
-              ))}
-            </div>
+                  <span className="text-[#38BDF8] shrink-0 font-mono text-[11px]">💬</span>
+                  <span className="break-words">{msgText.replace(/^["']|["']$/g, '')}</span>
+                </div>
+              ))
+            ) : (
+              <div className="p-2.5 rounded-2xl bg-[#0B0D11] border border-white/5 text-xs text-[#64748B] italic">
+                Bu unvan için kayıtlı mesaj alıntısı bulunmuyor.
+              </div>
+            )}
           </div>
 
           {/* Toggle Action */}
@@ -141,7 +105,7 @@ export const SuperlativeCard: React.FC<SuperlativeCardProps> = ({ card, index })
         <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-[#64748B]">
           <span className="font-mono uppercase tracking-wider">{card.statLabel}</span>
           <span className="text-[#38BDF8] flex items-center gap-1 font-medium group-hover:underline">
-            <span>Mesajları Gör</span>
+            <span>Mesajları Gör ({chatMessages.length > 0 ? chatMessages.length : card.statValue})</span>
             <ChevronDown className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" />
           </span>
         </div>

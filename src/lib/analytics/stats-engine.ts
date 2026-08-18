@@ -1,4 +1,4 @@
-import { ChatMetrics } from '../analytics/stats-engine';
+import { ParsedMessage } from '../parser/whatsapp-parser';
 
 export interface ParticipantStat {
   name: string;
@@ -38,6 +38,16 @@ export interface EmojiStat {
   percentage: number;
 }
 
+export interface SuperlativeItemData {
+  name: string;
+  count?: number;
+  avgMins?: number;
+  avgWords?: number;
+  exclamationCount?: number;
+  desc: string;
+  sampleMessages: string[];
+}
+
 export interface ChatMetrics {
   totalMessages: number;
   totalWords: number;
@@ -68,15 +78,15 @@ export interface ChatMetrics {
     count: number;
   };
   calculatedSuperlatives: {
-    nightOwl: { name: string; count: number; desc: string };
-    earlyBird: { name: string; count: number; desc: string };
-    ghost: { name: string; avgMins: number; desc: string };
-    speedster: { name: string; avgMins: number; desc: string };
-    impatient: { name: string; count: number; desc: string };
-    starter: { name: string; count: number; desc: string };
-    emojiMonarch: { name: string; count: number; desc: string };
-    novelist: { name: string; avgWords: number; desc: string };
-    hypeTrain: { name: string; exclamationCount: number; desc: string };
+    nightOwl: SuperlativeItemData;
+    earlyBird: SuperlativeItemData;
+    ghost: SuperlativeItemData;
+    speedster: SuperlativeItemData;
+    impatient: SuperlativeItemData;
+    starter: SuperlativeItemData;
+    emojiMonarch: SuperlativeItemData;
+    novelist: SuperlativeItemData;
+    hypeTrain: SuperlativeItemData;
   };
 }
 
@@ -101,6 +111,16 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
   const dailyCounts = new Array(7).fill(0);
   const dateCounts: Record<string, number> = {};
 
+  // Real message collector buffers for each participant
+  const nightMessagesMap: Record<string, string[]> = {};
+  const earlyMessagesMap: Record<string, string[]> = {};
+  const monologueMessagesMap: Record<string, string[]> = {};
+  const startersMessagesMap: Record<string, string[]> = {};
+  const longestMessagesMap: Record<string, { text: string; length: number; time: string }[]> = {};
+  const emojiMessagesMap: Record<string, string[]> = {};
+  const hypeMessagesMap: Record<string, string[]> = {};
+  const generalMessagesMap: Record<string, string[]> = {};
+
   const participantMap: Record<
     string,
     {
@@ -123,6 +143,7 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
   let lastMessageSender: string | null = null;
   let lastMessageTime: Date | null = null;
   let currentStreak = 0;
+  let currentStreakMessages: string[] = [];
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
@@ -145,6 +166,14 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
         conversationStarters: 0,
         exclamationCount: 0
       };
+      nightMessagesMap[sender] = [];
+      earlyMessagesMap[sender] = [];
+      monologueMessagesMap[sender] = [];
+      startersMessagesMap[sender] = [];
+      longestMessagesMap[sender] = [];
+      emojiMessagesMap[sender] = [];
+      hypeMessagesMap[sender] = [];
+      generalMessagesMap[sender] = [];
     }
 
     const p = participantMap[sender];
@@ -157,8 +186,8 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
     }
 
     // Text content stats
-    const text = msg.content || '';
-    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const text = (msg.content || '').trim();
+    const words = text ? text.split(/\s+/).length : 0;
     const chars = text.length;
 
     p.wordCount += words;
@@ -166,9 +195,27 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
     totalWords += words;
     totalCharacters += chars;
 
+    const timeStr = `${String(msgDate.getHours()).padStart(2, '0')}:${String(msgDate.getMinutes()).padStart(2, '0')}`;
+    const cleanSnippet = text.length > 100 ? text.slice(0, 100) + '...' : text;
+    const formattedSnippet = `[${timeStr}] ${cleanSnippet || '<Medya/Görsel>'}`;
+
+    if (generalMessagesMap[sender].length < 15 && text.length > 0) {
+      generalMessagesMap[sender].push(formattedSnippet);
+    }
+
     // Exclamation / laugh / excitement tracker
-    const exclamations = (text.match(/[!?]|(?:(?:ha){2,})|(?:(?:he){2,})|(?:(?:sj){2,})|[a-zA-ZçğıöşüÇĞİÖŞÜ]{8,}/gi) || []).length;
-    p.exclamationCount += exclamations;
+    const hasLaughOrHype = /[!?]|(?:(?:ha){2,})|(?:(?:he){2,})|(?:(?:sj){2,})|[a-zA-ZçğıöşüÇĞİÖŞÜ]{8,}/i.test(text);
+    if (hasLaughOrHype) {
+      p.exclamationCount++;
+      if (hypeMessagesMap[sender].length < 12 && text.length > 0) {
+        hypeMessagesMap[sender].push(formattedSnippet);
+      }
+    }
+
+    // Longest messages
+    if (text.length > 15) {
+      longestMessagesMap[sender].push({ text: formattedSnippet, length: text.length, time: timeStr });
+    }
 
     // Emoji extraction
     const foundEmojis = text.match(EMOJI_REGEX) || [];
@@ -177,6 +224,10 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
       totalEmojis++;
       p.emojiMap[emoji] = (p.emojiMap[emoji] || 0) + 1;
       globalEmojiCounts[emoji] = (globalEmojiCounts[emoji] || 0) + 1;
+    }
+
+    if (foundEmojis.length >= 2 && emojiMessagesMap[sender].length < 12) {
+      emojiMessagesMap[sender].push(formattedSnippet);
     }
 
     // Local Time & Date stats (avoid UTC off-by-one)
@@ -190,8 +241,14 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
 
     if (hour >= 0 && hour < 5) {
       p.nightMessages++;
+      if (nightMessagesMap[sender].length < 15 && text.length > 0) {
+        nightMessagesMap[sender].push(formattedSnippet);
+      }
     } else if (hour >= 5 && hour < 9) {
       p.earlyMessages++;
+      if (earlyMessagesMap[sender].length < 15 && text.length > 0) {
+        earlyMessagesMap[sender].push(formattedSnippet);
+      }
     }
 
     // Monologue and Response time calculation
@@ -201,11 +258,16 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
 
       if (lastMessageSender === sender) {
         currentStreak++;
+        currentStreakMessages.push(formattedSnippet);
         if (currentStreak === 3) {
           p.monologues++;
+          if (monologueMessagesMap[sender].length < 12) {
+            monologueMessagesMap[sender].push(...currentStreakMessages);
+          }
         }
       } else {
         currentStreak = 1;
+        currentStreakMessages = [formattedSnippet];
         // Different sender: calculate response time if within reasonable range (e.g. < 24 hours)
         if (diffMins >= 0 && diffMins <= 1440) {
           p.responseTimes.push(diffMins);
@@ -215,10 +277,17 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
       // Conversation starter: silence for 3+ hours (180 mins) before this message
       if (diffMins >= 180) {
         p.conversationStarters++;
+        if (startersMessagesMap[sender].length < 12 && text.length > 0) {
+          startersMessagesMap[sender].push(formattedSnippet);
+        }
       }
     } else {
       p.conversationStarters++;
       currentStreak = 1;
+      currentStreakMessages = [formattedSnippet];
+      if (startersMessagesMap[sender].length < 12 && text.length > 0) {
+        startersMessagesMap[sender].push(formattedSnippet);
+      }
     }
 
     lastMessageSender = sender;
@@ -331,6 +400,14 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
   const novelistWinner = sortedByAvgWords[0] || participantStats[0];
   const hypeTrainWinner = sortedByExclamation[0] || participantStats[0];
 
+  const getCleanSampleMessages = (arr: string[] | undefined, fallbackName: string) => {
+    if (arr && arr.length > 0) {
+      return arr.slice(0, 10);
+    }
+    const general = generalMessagesMap[fallbackName] || [];
+    return general.slice(0, 5);
+  };
+
   return {
     totalMessages,
     totalWords,
@@ -364,47 +441,59 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
       nightOwl: {
         name: nightOwlWinner.name,
         count: nightOwlWinner.nightMessages,
-        desc: `Gece 00:00 - 05:00 arasında tam ${nightOwlWinner.nightMessages} mesajla ayaktaydı.`
+        desc: `Gece 00:00 - 05:00 arasında tam ${nightOwlWinner.nightMessages} mesajla ayaktaydı.`,
+        sampleMessages: getCleanSampleMessages(nightMessagesMap[nightOwlWinner.name], nightOwlWinner.name)
       },
       earlyBird: {
         name: earlyBirdWinner.name,
         count: earlyBirdWinner.earlyMessages,
-        desc: `Sabahın ilk ışıklarında (${earlyBirdWinner.earlyMessages} mesaj) grubu uyandırdı.`
+        desc: `Sabahın ilk ışıklarında (${earlyBirdWinner.earlyMessages} mesaj) grubu uyandırdı.`,
+        sampleMessages: getCleanSampleMessages(earlyMessagesMap[earlyBirdWinner.name], earlyBirdWinner.name)
       },
       speedster: {
         name: speedsterWinner.name,
         avgMins: speedsterWinner.avgResponseTimeMinutes || 1,
-        desc: `Ortalama ${speedsterWinner.avgResponseTimeMinutes || 1} dakikada jet hızında cevap verdi.`
+        desc: `Ortalama ${speedsterWinner.avgResponseTimeMinutes || 1} dakikada jet hızında cevap verdi.`,
+        sampleMessages: getCleanSampleMessages(generalMessagesMap[speedsterWinner.name], speedsterWinner.name)
       },
       ghost: {
         name: ghostWinner.name,
         avgMins: ghostWinner.avgResponseTimeMinutes || 60,
-        desc: `Mesajlara ortalama ${ghostWinner.avgResponseTimeMinutes || 60} dakika sonra dönüş yaparak gizemini korudu.`
+        desc: `Mesajlara ortalama ${ghostWinner.avgResponseTimeMinutes || 60} dakika sonra dönüş yaparak gizemini korudu.`,
+        sampleMessages: getCleanSampleMessages(generalMessagesMap[ghostWinner.name], ghostWinner.name)
       },
       impatient: {
         name: impatientWinner.name,
         count: impatientWinner.monologues,
-        desc: `Cevap beklemeden art arda mesaj yağdırma rekoru (${impatientWinner.monologues} kez).`
+        desc: `Cevap beklemeden art arda mesaj yağdırma rekoru (${impatientWinner.monologues} kez).`,
+        sampleMessages: getCleanSampleMessages(monologueMessagesMap[impatientWinner.name], impatientWinner.name)
       },
       starter: {
         name: starterWinner.name,
         count: starterWinner.conversationStarters,
-        desc: `Sessizliği tam ${starterWinner.conversationStarters} defa bozarak muhabbeti başlattı.`
+        desc: `Sessizliği tam ${starterWinner.conversationStarters} defa bozarak muhabbeti başlattı.`,
+        sampleMessages: getCleanSampleMessages(startersMessagesMap[starterWinner.name], starterWinner.name)
       },
       emojiMonarch: {
         name: emojiMonarchWinner.name,
         count: emojiMonarchWinner.emojiCount,
-        desc: `Toplam ${emojiMonarchWinner.emojiCount} emoji ile duygularını kelimeler yerine sembollerle anlattı.`
+        desc: `Toplam ${emojiMonarchWinner.emojiCount} emoji ile duygularını kelimeler yerine sembollerle anlattı.`,
+        sampleMessages: getCleanSampleMessages(emojiMessagesMap[emojiMonarchWinner.name], emojiMonarchWinner.name)
       },
       novelist: {
         name: novelistWinner.name,
         avgWords: novelistWinner.avgWordsPerMessage,
-        desc: `Mesaj başına ortalama ${novelistWinner.avgWordsPerMessage} kelimeyle adeta mini makaleler yazdı.`
+        desc: `Mesaj başına ortalama ${novelistWinner.avgWordsPerMessage} kelimeyle adeta mini makaleler yazdı.`,
+        sampleMessages: (longestMessagesMap[novelistWinner.name] || [])
+          .sort((a, b) => b.length - a.length)
+          .slice(0, 8)
+          .map(m => m.text)
       },
       hypeTrain: {
         name: hypeTrainWinner.name,
         exclamationCount: hypeTrainWinner.exclamationCount,
-        desc: `Gruptaki heyecanı ve kahkahayı en çok körükleyen enerji kaynağı.`
+        desc: `Gruptaki heyecanı ve kahkahayı en çok körükleyen enerji kaynağı.`,
+        sampleMessages: getCleanSampleMessages(hypeMessagesMap[hypeTrainWinner.name], hypeTrainWinner.name)
       }
     }
   };

@@ -96,18 +96,18 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             </div>
           </div>
 
-          {/* Right: Primary Wrapped CTA + More Dropdown */}
+          {/* Right: Primary Story CTA + More Dropdown */}
           <div className="flex items-center gap-2 shrink-0">
             
-            {/* Primary Action Button */}
+            {/* Primary Action Button -> "Story" */}
             <Button
               variant="blue"
               size="md"
               onClick={onOpenWrapped}
-              className="font-bold text-xs sm:text-sm shadow-glow-blue py-2.5 px-4 sm:px-5"
+              className="font-bold text-xs sm:text-sm shadow-glow-blue py-2.5 px-4 sm:px-6"
             >
               <Sparkles className="w-4 h-4 text-[#07090C]" />
-              <span>Wrapped'ı Başlat</span>
+              <span>Story</span>
             </Button>
 
             {/* Overflow Dropdown (⋯) */}
