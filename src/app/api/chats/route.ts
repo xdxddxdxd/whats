@@ -4,6 +4,7 @@ import { parseWhatsAppChat } from '@/lib/parser/whatsapp-parser';
 import { calculateChatMetrics } from '@/lib/analytics/stats-engine';
 import { generateAIAnalysis } from '@/lib/ai/ai-service';
 import { generateInviteCode, generatePin } from '@/lib/utils/session';
+import JSZip from 'jszip';
 
 export const maxDuration = 60; // Allow enough time for parsing and AI
 
@@ -69,10 +70,27 @@ export async function POST(request: NextRequest) {
     }
 
     if (!file) {
-      return NextResponse.json({ error: 'Lütfen bir WhatsApp .txt dosyası seçin.' }, { status: 400 });
+      return NextResponse.json({ error: 'Lütfen bir WhatsApp sohbet dosyası seçin.' }, { status: 400 });
     }
 
-    const rawText = await file.text();
+    let rawText = '';
+    const isZip = file.name.toLowerCase().endsWith('.zip') || file.type.includes('zip');
+
+    if (isZip) {
+      const buffer = await file.arrayBuffer();
+      const zip = await JSZip.loadAsync(buffer);
+      let txtInZip = zip.file('_chat.txt');
+      if (!txtInZip) {
+        const txtFiles = zip.file(/\.txt$/i);
+        if (txtFiles && txtFiles.length > 0) txtInZip = txtFiles[0];
+      }
+      if (!txtInZip) {
+        return NextResponse.json({ error: 'ZIP arşivi içinde WhatsApp sohbet metin dosyası (_chat.txt) bulunamadı.' }, { status: 400 });
+      }
+      rawText = await txtInZip.async('string');
+    } else {
+      rawText = await file.text();
+    }
 
     // 2. Parse & Validate WhatsApp chat
     const parseResult = parseWhatsAppChat(rawText, customTitle || undefined);
