@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Sparkles, ShieldAlert, ArrowLeft, Award } from 'lucide-react';
+import { Sparkles, ShieldAlert, ArrowLeft, Award, Play } from 'lucide-react';
 import { getClientOwnerToken, getClientGuestSession } from '@/lib/utils/session';
 import { formatNumber } from '@/lib/utils/formatters';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
@@ -108,12 +108,14 @@ export default function ChatDashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#07090C] flex flex-col items-center justify-center p-6 text-center text-white">
-        <div className="text-4xl animate-bounce mb-3 font-emoji">🍿✨</div>
+        <div className="w-16 h-16 rounded-3xl bg-[#11141A] border border-[#38BDF8]/30 flex items-center justify-center mb-4 text-3xl font-emoji shadow-glow-blue animate-pulse">
+          ✨
+        </div>
         <h2 className="text-xl font-bold tracking-tight text-white">
           Sohbet Analizi Hazırlanıyor...
         </h2>
         <p className="text-xs text-[#94A3B8] mt-1 font-sans">
-          Mesajlar, emojiler ve kişilik unvanları hesaplanıyor.
+          Mesajlar, emojiler ve unvanlar hesaplanıyor.
         </p>
       </div>
     );
@@ -179,7 +181,7 @@ export default function ChatDashboardPage() {
       {/* Background Subtle Glows */}
       <div className="absolute top-0 left-1/3 w-[800px] h-[400px] bg-[#0284C7]/10 rounded-full blur-[140px] pointer-events-none" />
 
-      {/* Header */}
+      {/* Simplified Top Header */}
       <DashboardHeader
         chat={chatData}
         onOpenWrapped={() => setIsWrappedOpen(true)}
@@ -191,19 +193,20 @@ export default function ChatDashboardPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-10 relative z-10">
         
-        {/* Top Summary Banner: Elevated Spotlight Card */}
+        {/* Cinematic AI Summary Spotlight Card */}
         {analysisData?.ai_summary && (
-          <div className="p-6 sm:p-7 rounded-3xl bg-[#11141A] border border-white/10 shadow-glow-blue flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 relative overflow-hidden">
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#38BDF8] to-transparent opacity-80" />
-            
-            <div className="flex items-start gap-4">
-              <span className="w-12 h-12 rounded-2xl bg-[#0284C7]/20 border border-[#38BDF8]/30 text-[#38BDF8] flex items-center justify-center text-2xl font-emoji shrink-0 shadow-glow-blue">
+          <div className="p-6 sm:p-8 rounded-3xl bg-[#11141A] border border-[#38BDF8]/30 shadow-glow-blue flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#38BDF8] to-transparent opacity-90" />
+            <div className="absolute -right-20 -bottom-20 w-60 h-60 bg-[#38BDF8]/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex items-start gap-4 z-10">
+              <div className="w-14 h-14 rounded-2xl bg-[#0B0D11] border border-[#38BDF8]/30 text-[#38BDF8] flex items-center justify-center text-2xl font-emoji shrink-0 shadow-glow-blue">
                 ✨
-              </span>
-              <div className="space-y-1">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#38BDF8] flex items-center gap-1.5">
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#38BDF8] flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#38BDF8] animate-pulse" />
-                  GRUP ÖZETİ & VIBE CHECK
+                  SOHBET ÖZETİ VE DİNAMİKLERİ
                 </span>
                 <p className="text-sm sm:text-base text-white/95 font-sans font-medium leading-relaxed max-w-3xl">
                   {analysisData.ai_summary}
@@ -213,17 +216,17 @@ export default function ChatDashboardPage() {
 
             <Button
               variant="blue"
-              size="md"
+              size="lg"
               onClick={() => setIsWrappedOpen(true)}
-              className="shrink-0 font-bold text-xs sm:text-sm shadow-glow-blue"
+              className="shrink-0 font-bold text-xs sm:text-sm shadow-glow-blue py-3 px-6 z-10"
             >
-              <Sparkles className="w-4 h-4 text-[#07090C]" />
-              <span>Wrapped Story'yi İzle</span>
+              <Play className="w-4 h-4 text-[#07090C] fill-[#07090C]" />
+              <span>Story'yi İzle</span>
             </Button>
           </div>
         )}
 
-        {/* 1. Key Stat Cards */}
+        {/* 1. Stat Cards with Top 2 Hero Emphasis */}
         {metrics && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
@@ -231,15 +234,17 @@ export default function ChatDashboardPage() {
               value={formatNumber(metrics.totalMessages)}
               subtitle={`${metrics.daysSpan} günde paylaşıldı`}
               emoji="💬"
+              isHero={true}
             />
             <StatCard
               title="En Çok Konuşan"
               value={metrics.participants?.[0]?.name || '-'}
               subtitle={`Toplamın %${metrics.participants?.[0]?.messagePercentage || 0}'i`}
               emoji="👑"
+              isHero={true}
             />
             <StatCard
-              title="En Alevli Saat"
+              title="En Yoğun Saat"
               value={metrics.peakHour?.label || '-'}
               subtitle={`${formatNumber(metrics.peakHour?.count || 0)} mesaj`}
               emoji="⏰"
@@ -253,22 +258,22 @@ export default function ChatDashboardPage() {
           </div>
         )}
 
-        {/* 2. Superlatives / Kişilik Kartları */}
+        {/* 2. Cinematic Superlative Award Cards */}
         {superlatives.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
                   <Award className="w-5 h-5 text-[#38BDF8]" />
-                  <span>Grup Kişilik Ödülleri (Superlatives)</span>
+                  <span>Grup Kişilik Ödülleri</span>
                 </h3>
                 <p className="text-xs text-[#94A3B8] mt-0.5 font-sans">
-                  Sohbet dinamiklerine göre yapay zeka tarafından belirlenen unvanlar
+                  Sohbet dinamiklerine göre belirlenen unvanlar
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {superlatives.map((card: any, idx: number) => (
                 <SuperlativeCard
                   key={card.id || idx}
@@ -280,7 +285,7 @@ export default function ChatDashboardPage() {
           </div>
         )}
 
-        {/* 3. Activity Charts (24-Hour & Days) */}
+        {/* 3. Activity Charts */}
         {metrics && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ActiveHoursChart
@@ -294,7 +299,7 @@ export default function ChatDashboardPage() {
           </div>
         )}
 
-        {/* 4. Emoji Leaderboard */}
+        {/* 4. Emoji Leaderboard with Top 5 Podium */}
         {metrics && (
           <EmojiLeaderboard
             emojis={metrics.topEmojis || []}
