@@ -1,22 +1,33 @@
 import { ChatMetrics } from '../analytics/stats-engine';
-import { AIAnalysisResult } from './types';
+import { AIAnalysisResult, SuperlativeCard, WrappedSlideData } from './types';
 import { buildAnalysisPrompt } from './prompts';
 import { generateSmartRuleBasedAnalysis } from './rules-engine';
 
-export async function generateAIAnalysis(
+interface AgentResponse {
+  summary?: string;
+  groupVibe?: string;
+  superlatives?: SuperlativeCard[];
+  wrappedSlides?: WrappedSlideData[];
+}
+
+/**
+ * 1. Gemini Agent: Master of Turkish Humor, Wrapped Storytelling & AI Oracle
+ */
+async function callGeminiAgent(
   chatTitle: string,
   metrics: ChatMetrics,
-  chatType: 'group' | 'direct'
-): Promise<AIAnalysisResult> {
-  const geminiKey = process.env.GEMINI_API_KEY;
-  const openaiKey = process.env.OPENAI_API_KEY;
+  chatType: 'group' | 'direct',
+  apiKey: string
+): Promise<AgentResponse | null> {
+  const prompt = `${buildAnalysisPrompt(chatTitle, metrics, chatType)}
+ÖZELLİKLE: Spotify Wrapped 7 slaytlık hikaye anlatısına, eğlenceli Türkçe esprilere ve grup kehanetine odaklan.`;
 
-  // 1. If Gemini API key is available
-  if (geminiKey) {
+  // Try gemini-2.5-flash or gemini-flash-latest
+  const modelNames = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-1.5-flash'];
+
+  for (const model of modelNames) {
     try {
-      const prompt = buildAnalysisPrompt(chatTitle, metrics, chatType);
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
-
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -24,72 +35,247 @@ export async function generateAIAnalysis(
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             responseMimeType: 'application/json',
-            temperature: 0.8
-          }
-        })
+            temperature: 0.85,
+          },
+        }),
       });
 
       if (response.ok) {
         const data = await response.json();
         const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (rawContent) {
-          const parsed = JSON.parse(rawContent);
-          return {
-            summary: parsed.summary || 'Harika bir analiz!',
-            groupVibe: parsed.groupVibe || 'Eğlenceli Ekip',
-            superlatives: parsed.superlatives || [],
-            wrappedSlides: parsed.wrappedSlides || [],
-            generatedAt: new Date().toISOString(),
-            provider: 'gemini'
-          };
+          return JSON.parse(rawContent);
         }
       }
     } catch (err) {
-      console.warn('Gemini API call failed, falling back to smart rules engine:', err);
+      console.warn(`Gemini (${model}) error:`, err);
     }
   }
+  return null;
+}
 
-  // 2. If OpenAI API key is available
-  if (openaiKey) {
+/**
+ * 2. DeepSeek / OpenRouter Agent: Deep Psychological & Relationship Superlative Archetypes
+ */
+async function callOpenRouterAgent(
+  chatTitle: string,
+  metrics: ChatMetrics,
+  chatType: 'group' | 'direct',
+  apiKey: string
+): Promise<AgentResponse | null> {
+  const prompt = `Sen derin ilişki ve karakter analizi yapan bir psikolog ve sohbet dedektifisin.
+GÖREV: Aşağıdaki WhatsApp verilerinden katılımcıların gruptaki rollerini, birbirleriyle dinamiklerini ve derin kişilik unvanlarını (superlatives) belirle.
+
+SOHBET DETAYLARI:
+- Başlık: ${chatTitle}
+- Toplam Mesaj: ${metrics.totalMessages}
+- Katılımcılar: ${metrics.participants.map(p => `${p.name}: ${p.messageCount} mesaj (%${p.messagePercentage}), gece: ${p.nightMessages}, ort. yanıt: ${p.avgResponseTimeMinutes || '-'} dk`).join(', ')}
+
+SADECE geçerli JSON döndür:
+{
+  "groupVibe": "Grubun psikolojik enerjisi",
+  "superlatives": [
+    {
+      "id": "unvan_id",
+      "title": "Unvan (örn. Gece Kuşu 🦉)",
+      "winner": "Kişi Adı",
+      "badge": "Emoji",
+      "color": "bg-white text-[#0A0A0A]",
+      "description": "Detaylı ve zekice esprili açıklama",
+      "quote": "Temsili söz",
+      "statLabel": "İstatistik Başlığı",
+      "statValue": "Değer"
+    }
+  ]
+}`;
+
+  const freeModels = [
+    'deepseek/deepseek-r1:free',
+    'google/gemma-4-26b-a4b-it:free',
+    'openai/gpt-oss-20b:free',
+    'deepseek/deepseek-chat',
+  ];
+
+  for (const model of freeModels) {
     try {
-      const prompt = buildAnalysisPrompt(chatTitle, metrics, chatType);
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${openaiKey}`
+          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model,
           messages: [
-            { role: 'system', content: 'Sen samimi ve esprili bir WhatsApp sohbet analistisin. Sadece geçerli JSON döndür.' },
-            { role: 'user', content: prompt }
+            { role: 'system', content: 'Sadece geçerli JSON döndür.' },
+            { role: 'user', content: prompt },
           ],
           response_format: { type: 'json_object' },
-          temperature: 0.8
-        })
+          temperature: 0.7,
+        }),
       });
 
       if (response.ok) {
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content;
         if (content) {
-          const parsed = JSON.parse(content);
-          return {
-            summary: parsed.summary || 'Harika bir analiz!',
-            groupVibe: parsed.groupVibe || 'Eğlenceli Ekip',
-            superlatives: parsed.superlatives || [],
-            wrappedSlides: parsed.wrappedSlides || [],
-            generatedAt: new Date().toISOString(),
-            provider: 'openai'
-          };
+          return JSON.parse(content);
         }
       }
     } catch (err) {
-      console.warn('OpenAI API call failed, falling back to smart rules engine:', err);
+      console.warn(`OpenRouter (${model}) error:`, err);
+    }
+  }
+  return null;
+}
+
+/**
+ * 3. Groq Agent: Ultra Fast Group Vibe, Taglines & Punchline Summaries
+ */
+async function callGroqAgent(
+  chatTitle: string,
+  metrics: ChatMetrics,
+  chatType: 'group' | 'direct',
+  apiKey: string
+): Promise<AgentResponse | null> {
+  const prompt = `WhatsApp sohbet analizi için hızlı ve esprili bir grup özeti ve 3-4 kelimelik enerjik Vibe başlığı üret.
+Başlık: ${chatTitle}
+Toplam Mesaj: ${metrics.totalMessages}, En Çok Yazan: ${metrics.participants[0]?.name || 'Biri'}
+SADECE JSON döndür:
+{
+  "summary": "1-2 samimi esprili cümle",
+  "groupVibe": "Vurucu Vibe Başlığı"
+}`;
+
+  const groqModels = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.6-27b'];
+
+  for (const model of groqModels) {
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: 'Sen esprili bir Türk analistsin. Sadece JSON döndür.' },
+            { role: 'user', content: prompt },
+          ],
+          response_format: { type: 'json_object' },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (content) {
+          return JSON.parse(content);
+        }
+      }
+    } catch (err) {
+      console.warn(`Groq (${model}) error:`, err);
+    }
+  }
+  return null;
+}
+
+/**
+ * Multi-Agent Parallel Orchestrator (Gemini + Groq + DeepSeek/OpenRouter)
+ */
+export async function generateAIAnalysis(
+  chatTitle: string,
+  metrics: ChatMetrics,
+  chatType: 'group' | 'direct'
+): Promise<AIAnalysisResult> {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const groqKey = process.env.GROQ_API_KEY;
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
+
+  // Baseline rule-based analysis ensures 100% reliability
+  const baseline = generateSmartRuleBasedAnalysis(chatTitle, metrics, chatType);
+
+  // If no API keys provided at all, immediately return high quality rule-based
+  if (!geminiKey && !groqKey && !openRouterKey) {
+    return baseline;
+  }
+
+  // Launch all available agents simultaneously in parallel
+  const agentPromises: Promise<any>[] = [];
+
+  if (geminiKey) {
+    agentPromises.push(
+      callGeminiAgent(chatTitle, metrics, chatType, geminiKey).then(res => ({ agent: 'gemini', data: res }))
+    );
+  }
+
+  if (openRouterKey) {
+    agentPromises.push(
+      callOpenRouterAgent(chatTitle, metrics, chatType, openRouterKey).then(res => ({ agent: 'openrouter', data: res }))
+    );
+  }
+
+  if (groqKey) {
+    agentPromises.push(
+      callGroqAgent(chatTitle, metrics, chatType, groqKey).then(res => ({ agent: 'groq', data: res }))
+    );
+  }
+
+  const results = await Promise.allSettled(agentPromises);
+  const successfulAgents: string[] = [];
+
+  let finalSummary = baseline.summary;
+  let finalGroupVibe = baseline.groupVibe;
+  let finalSuperlatives = baseline.superlatives;
+  let finalWrappedSlides = baseline.wrappedSlides;
+
+  for (const r of results) {
+    if (r.status === 'fulfilled' && r.value?.data) {
+      const { agent, data } = r.value;
+      successfulAgents.push(agent);
+
+      // Groq provides snappy group vibe & punchy summary
+      if (agent === 'groq') {
+        if (data.groupVibe) finalGroupVibe = data.groupVibe;
+        if (data.summary) finalSummary = data.summary;
+      }
+
+      // OpenRouter / DeepSeek provides deep psychological superlatives
+      if (agent === 'openrouter') {
+        if (data.superlatives && data.superlatives.length > 0) {
+          finalSuperlatives = data.superlatives;
+        }
+        if (data.groupVibe && !finalGroupVibe) finalGroupVibe = data.groupVibe;
+      }
+
+      // Gemini provides flagship Wrapped story slides, rich summary & awards
+      if (agent === 'gemini') {
+        if (data.summary) finalSummary = data.summary;
+        if (data.groupVibe) finalGroupVibe = data.groupVibe;
+        if (data.wrappedSlides && data.wrappedSlides.length > 0) {
+          finalWrappedSlides = data.wrappedSlides;
+        }
+        if (data.superlatives && data.superlatives.length > 0) {
+          finalSuperlatives = data.superlatives;
+        }
+      }
     }
   }
 
-  // 3. Smart Rule-based analysis engine (Default & Fallback)
-  return generateSmartRuleBasedAnalysis(chatTitle, metrics, chatType);
+  const providerLabel =
+    successfulAgents.length > 1
+      ? (`multi-agent (${successfulAgents.join(' + ')})` as any)
+      : successfulAgents.length === 1
+      ? (successfulAgents[0] as any)
+      : 'smart_engine';
+
+  return {
+    summary: finalSummary,
+    groupVibe: finalGroupVibe,
+    superlatives: finalSuperlatives,
+    wrappedSlides: finalWrappedSlides,
+    generatedAt: new Date().toISOString(),
+    provider: providerLabel,
+  };
 }
