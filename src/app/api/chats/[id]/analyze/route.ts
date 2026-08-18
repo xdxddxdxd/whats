@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { generateAIAnalysis } from '@/lib/ai/ai-service';
 import { ChatMetrics } from '@/lib/analytics/stats-engine';
+import { assertChatOwner, ApiError } from '@/lib/supabase/guards';
+import { Database } from '@/lib/supabase/types';
+
+export const maxDuration = 15;
+
+type ChatAnalysisRow = Database['public']['Tables']['chat_analyses']['Row'];
 
 export async function POST(
   request: NextRequest,
@@ -14,35 +20,20 @@ export async function POST(
 
     const supabase = createServerSupabaseClient();
 
-    // 1. Fetch Chat
-    const { data: chatData, error: chatError } = await supabase
-      .from('chats')
-      .select('*')
-      .eq('id', chatId)
-      .single();
-
-    const chat = chatData as any;
-
-    if (chatError || !chat) {
-      return NextResponse.json({ error: 'Sohbet bulunamadı.' }, { status: 404 });
-    }
-
-    if (chat.owner_token !== ownerToken) {
-      return NextResponse.json({ error: 'Analiz tetikleme yetkiniz yok.' }, { status: 403 });
-    }
+    // 1. Assert Ownership via central guard
+    const chat = await assertChatOwner(supabase, chatId, ownerToken);
 
     // 2. Fetch existing metrics
-    const { data: currentAnalysisData } = await supabase
+    const { data: analysisData, error: analysisError } = await supabase
       .from('chat_analyses')
       .select('*')
       .eq('chat_id', chatId)
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
 
-    const currentAnalysis = currentAnalysisData as any;
+    const currentAnalysis = (analysisData && analysisData.length > 0 ? analysisData[0] : null) as ChatAnalysisRow | null;
 
-    if (!currentAnalysis || !currentAnalysis.metrics) {
+    if (analysisError || !currentAnalysis || !currentAnalysis.metrics) {
       return NextResponse.json({ error: 'Hesaplanmış metrikler bulunamadı.' }, { status: 400 });
     }
 
@@ -74,6 +65,9 @@ export async function POST(
       analysis: updatedAnalysis
     });
   } catch (err: any) {
+    if (err instanceof ApiError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
     return NextResponse.json({ error: err.message || 'Analiz güncellenemedi.' }, { status: 500 });
   }
 }
