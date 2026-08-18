@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from './types';
 
 export function createServerSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -9,7 +8,7 @@ export function createServerSupabaseClient() {
     throw new Error('Supabase ortam değişkenleri eksik. Lütfen NEXT_PUBLIC_SUPABASE_URL ve SUPABASE_SERVICE_ROLE_KEY veya NEXT_PUBLIC_SUPABASE_ANON_KEY değerlerini tanımlayın.');
   }
 
-  return createClient<Database>(supabaseUrl, supabaseKey, {
+  return createClient(supabaseUrl, supabaseKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,

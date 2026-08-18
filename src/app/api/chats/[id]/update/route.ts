@@ -5,11 +5,8 @@ import { calculateChatMetrics } from '@/lib/analytics/stats-engine';
 import { generateAIAnalysis } from '@/lib/ai/ai-service';
 import { assertChatOwner, ApiError } from '@/lib/supabase/guards';
 import { extractRawTextFromUpload } from '@/lib/utils/extract-chat-text';
-import { Database } from '@/lib/supabase/types';
 
 export const maxDuration = 15;
-
-type ChatAnalysisRow = Database['public']['Tables']['chat_analyses']['Row'];
 
 export async function POST(
   request: NextRequest,
@@ -71,7 +68,7 @@ export async function POST(
       .order('created_at', { ascending: false })
       .limit(1);
 
-    const currentAnalysis = (analysisData && analysisData.length > 0 ? analysisData[0] : null) as ChatAnalysisRow | null;
+    const currentAnalysis = (analysisData && analysisData.length > 0 ? analysisData[0] : null) as any;
 
     if (currentAnalysis) {
       await supabase
