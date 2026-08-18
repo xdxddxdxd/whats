@@ -4,7 +4,7 @@ import { generateAIAnalysis } from '@/lib/ai/ai-service';
 import { ChatMetrics } from '@/lib/analytics/stats-engine';
 import { assertChatOwner, ApiError } from '@/lib/supabase/guards';
 
-export const maxDuration = 15;
+export const maxDuration = 60;
 
 export async function POST(
   request: NextRequest,
@@ -13,7 +13,7 @@ export async function POST(
   try {
     const chatId = params.id;
     const body = await request.json().catch(() => ({}));
-    const ownerToken = body.owner_token || request.headers.get('x-owner-token');
+    const ownerToken = request.headers.get('x-owner-token') || body.owner_token;
 
     const supabase = createServerSupabaseClient();
 

@@ -6,7 +6,7 @@ import { generateAIAnalysis } from '@/lib/ai/ai-service';
 import { assertChatOwner, ApiError } from '@/lib/supabase/guards';
 import { extractRawTextFromUpload } from '@/lib/utils/extract-chat-text';
 
-export const maxDuration = 15;
+export const maxDuration = 60;
 
 export async function POST(
   request: NextRequest,
@@ -16,7 +16,8 @@ export async function POST(
     const chatId = params.id;
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const ownerToken = formData.get('owner_token') as string | null;
+    const headerOwnerToken = request.headers.get('x-owner-token');
+    const ownerToken = (formData.get('owner_token') as string | null) || headerOwnerToken;
 
     const supabase = createServerSupabaseClient();
 

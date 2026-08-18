@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { generateGuestSessionToken } from '@/lib/utils/session';
 
 // In-memory rate limiting map for PIN attempts (key: ip+inviteCode -> { count, lockUntil })
 const attemptMap = new Map<string, { count: number; lockUntil: number }>();
@@ -108,8 +109,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 5. Create new session token if none existed
-    const sessionToken = 'gst_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    // 5. Create new session token with crypto
+    const sessionToken = generateGuestSessionToken();
 
     const { data: newGuest, error: guestInsertError } = await supabase
       .from('guest_sessions')

@@ -4,15 +4,15 @@ import { parseWhatsAppChat } from '@/lib/parser/whatsapp-parser';
 import { calculateChatMetrics } from '@/lib/analytics/stats-engine';
 import { generateAIAnalysis } from '@/lib/ai/ai-service';
 import { generateInviteCode, generatePin, generateOwnerToken } from '@/lib/utils/session';
-import JSZip from 'jszip';
+import { extractRawTextFromUpload } from '@/lib/utils/extract-chat-text';
 
-export const maxDuration = 15; // Set to standard 15s
+export const maxDuration = 60;
 
 // GET: List chats for owner
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const ownerToken = searchParams.get('owner_token') || request.headers.get('x-owner-token');
+    const ownerToken = request.headers.get('x-owner-token') || searchParams.get('owner_token');
 
     if (!ownerToken) {
       return NextResponse.json({ chats: [] });
@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const rawOwnerToken = formData.get('owner_token') as string | null;
+    const headerOwnerToken = request.headers.get('x-owner-token');
+    const rawOwnerToken = (formData.get('owner_token') as string | null) || headerOwnerToken;
     const customTitle = formData.get('title') as string | null;
 
     // Ensure we always have an ownerToken (client or auto-generated)
@@ -72,34 +73,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Lütfen bir WhatsApp sohbet dosyası (.txt veya .zip) seçin.' }, { status: 400 });
     }
 
+    // 2. Extract Raw Text using shared helper
     let rawText = '';
-    const isZip = file.name.toLowerCase().endsWith('.zip') || file.type.includes('zip');
-
-    if (isZip) {
-      try {
-        const buffer = await file.arrayBuffer();
-        const zip = await JSZip.loadAsync(buffer);
-        let txtInZip = zip.file('_chat.txt');
-        if (!txtInZip) {
-          const txtFiles = zip.file(/\.txt$/i);
-          if (txtFiles && txtFiles.length > 0) txtInZip = txtFiles[0];
-        }
-        if (!txtInZip) {
-          return NextResponse.json({ error: 'ZIP arşivi içinde WhatsApp sohbet metin dosyası (_chat.txt) bulunamadı.' }, { status: 400 });
-        }
-        rawText = await txtInZip.async('string');
-      } catch (zipErr: any) {
-        return NextResponse.json({ error: 'ZIP dosyası açılamadı: ' + (zipErr.message || 'Bozuk arşiv.') }, { status: 400 });
-      }
-    } else {
-      rawText = await file.text();
+    try {
+      rawText = await extractRawTextFromUpload(file);
+    } catch (extractErr: any) {
+      return NextResponse.json({ error: extractErr.message || 'Dosya okunamadı.' }, { status: 400 });
     }
 
     if (!rawText || rawText.trim().length === 0) {
       return NextResponse.json({ error: 'Seçilen dosya boş görünüyor. Lütfen mesaj içeren geçerli bir WhatsApp sohbet dosyası seçin.' }, { status: 400 });
     }
 
-    // 2. Parse & Validate WhatsApp chat
+    // 3. Parse & Validate WhatsApp chat
     const parseResult = parseWhatsAppChat(rawText, customTitle || undefined);
     if (!parseResult.isValid || parseResult.messages.length === 0) {
       return NextResponse.json(
@@ -110,14 +96,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Calculate Stats & Metrics
+    // 4. Calculate Stats & Metrics
     const metrics = calculateChatMetrics(parseResult.messages);
 
-    // 4. Generate AI Analysis & Wrapped Slides (with fast timeouts & smart fallback)
+    // 5. Generate AI Analysis & Wrapped Slides (with fast timeouts & smart fallback)
     const finalTitle = customTitle || parseResult.title || 'WhatsApp Sohbeti';
     const aiAnalysis = await generateAIAnalysis(finalTitle, metrics, parseResult.chatType);
 
-    // 5. Insert Chat into Supabase
+    // 6. Insert Chat into Supabase
     const { data: chat, error: chatError } = await supabase
       .from('chats')
       .insert({
@@ -137,29 +123,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: chatError?.message || 'Sohbet kaydedilemedi.' }, { status: 500 });
     }
 
-    // 6. Insert Invite Link & Fixed PIN
+    // 7. Insert Invite Link & Fixed PIN, and Chat Analysis in Parallel
     const inviteCode = generateInviteCode();
     const passwordPin = generatePin();
 
-    await supabase
-      .from('invites')
-      .insert({
+    const [inviteRes, analysisRes] = await Promise.all([
+      supabase.from('invites').insert({
         chat_id: chat.id,
         invite_code: inviteCode,
         password_pin: passwordPin
-      });
-
-    // 7. Insert Chat Analysis
-    await supabase
-      .from('chat_analyses')
-      .insert({
+      }),
+      supabase.from('chat_analyses').insert({
         chat_id: chat.id,
         metrics: metrics as any,
         superlatives: aiAnalysis.superlatives as any,
         wrapped_slides: aiAnalysis.wrappedSlides as any,
         ai_summary: aiAnalysis.summary,
         version: 1
-      });
+      })
+    ]);
+
+    if (inviteRes.error) {
+      console.warn('Invite creation notice:', inviteRes.error);
+    }
+    if (analysisRes.error) {
+      console.warn('Analysis creation notice:', analysisRes.error);
+    }
 
     return NextResponse.json({
       success: true,
