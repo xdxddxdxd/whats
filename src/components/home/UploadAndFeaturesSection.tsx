@@ -9,10 +9,12 @@ import {
   ShieldCheck,
   Trophy,
   RefreshCw,
-  FileDown,
   Lock,
+  FileArchive,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { processUploadedChatFile } from '@/lib/parser/zip-helper';
 
 interface UploadAndFeaturesSectionProps {
   ownerToken: string;
@@ -28,9 +30,13 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
   onOpenLimitModal,
 }) => {
   const [file, setFile] = useState<File | null>(null);
+  const [displayFileName, setDisplayFileName] = useState<string>('');
+  const [displayFileSize, setDisplayFileSize] = useState<number>(0);
+  const [isZip, setIsZip] = useState(false);
   const [customTitle, setCustomTitle] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isExtractingZip, setIsExtractingZip] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,27 +49,40 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      validateAndSetFile(e.dataTransfer.files[0]);
+      await handleFileSelection(e.dataTransfer.files[0]);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      validateAndSetFile(e.target.files[0]);
+      await handleFileSelection(e.target.files[0]);
     }
   };
 
-  const validateAndSetFile = (selectedFile: File) => {
+  const handleFileSelection = async (rawFile: File) => {
     setError(null);
-    if (!selectedFile.name.endsWith('.txt')) {
-      setError('Lütfen sadece WhatsApp sohbet dışa aktarım metin dosyasını (.txt) seçin.');
-      return;
+    setIsExtractingZip(true);
+
+    try {
+      const { file: extractedTxtFile, inferredTitle, originalFileName } = await processUploadedChatFile(rawFile);
+      setFile(extractedTxtFile);
+      setDisplayFileName(originalFileName);
+      setDisplayFileSize(rawFile.size);
+      setIsZip(originalFileName.toLowerCase().endsWith('.zip'));
+
+      if (inferredTitle && !customTitle.trim()) {
+        setCustomTitle(inferredTitle);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Dosya seçilirken bir hata oluştu.');
+      setFile(null);
+    } finally {
+      setIsExtractingZip(false);
     }
-    setFile(selectedFile);
   };
 
   const handleUploadAndAnalyze = async () => {
@@ -73,7 +92,7 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
     }
 
     if (!file) {
-      setError('Lütfen bir WhatsApp .txt sohbet dosyası seçin.');
+      setError('Lütfen bir WhatsApp sohbet dosyası (.txt veya iPhone .zip) seçin.');
       return;
     }
 
@@ -88,4 +107,228 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
         formData.append('title', customTitle.trim());
       }
 
-      const res = await fetch('/api/chats', {\n        method: 'POST',\n        body: formData,\n      });\n\n      const data = await res.json();\n\n      if (!res.ok) {\n        if (data.limitReached) {\n          onOpenLimitModal();\n        }\n        throw new Error(data.error || 'Sohbet analiz edilemedi.');\n      }\n\n      if (data.chat?.id) {\n        onSuccess(data.chat.id);\n      }\n    } catch (err: any) {\n      setError(err.message || 'Dosya işlenirken beklenmeyen bir hata oluştu.');\n    } finally {\n      setIsLoading(false);\n    }\n  };\n\n  return (\n    <section id=\"upload-hub\" className=\"scroll-mt-24\">\n      <div className=\"grid grid-cols-1 lg:grid-cols-12 gap-8 items-start\">\n        \n        {/* SOL: Yükleme İstasyonu (Upload Box) */}\n        <div className=\"lg:col-span-7 rounded-3xl bg-[#11141A] border border-white/10 p-6 sm:p-8 shadow-2xl space-y-5 relative overflow-hidden\">\n          \n          {/* Ambient Top Glow */}\n          <div className=\"absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#38BDF8] to-transparent opacity-80\" />\n\n          <div>\n            <span className=\"w-10 h-10 rounded-2xl bg-[#0284C7]/20 border border-[#38BDF8]/30 text-[#38BDF8] inline-flex items-center justify-center font-emoji text-xl shadow-glow-blue mb-2\">\n              💬✨\n            </span>\n            <h2 className=\"text-2xl sm:text-3xl font-extrabold tracking-tight text-white\">\n              Sohbetinizi Yükleyin\n            </h2>\n            <p className=\"text-xs sm:text-sm text-[#94A3B8] font-sans mt-1\">\n              WhatsApp uygulamasından <strong>\"Sohbeti Dışa Aktar\"</strong> (.txt) ile aldığınız dosyayı bırakın.\n            </p>\n          </div>\n\n          {/* Drag & Drop Zone */}\n          <div\n            onDragOver={handleDragOver}\n            onDragLeave={handleDragLeave}\n            onDrop={handleDrop}\n            onClick={() => fileInputRef.current?.click()}\n            className={`rounded-3xl border-2 border-dashed p-6 sm:p-8 text-center cursor-pointer transition-all duration-300 ${\n              isDragging\n                ? 'border-[#38BDF8] bg-[#38BDF8]/10 scale-[0.99]'\n                : file\n                ? 'border-[#38BDF8] bg-[#0B0D11]'\n                : 'border-white/15 hover:border-[#38BDF8]/60 bg-[#0B0D11] hover:bg-[#0E1015]'\n            }`}\n          >\n            <input\n              ref={fileInputRef}\n              type=\"file\"\n              accept=\".txt\"\n              className=\"hidden\"\n              onChange={handleFileChange}\n            />\n\n            {file ? (\n              <div className=\"flex flex-col items-center space-y-2.5\">\n                <div className=\"w-12 h-12 rounded-2xl bg-[#0284C7] text-white flex items-center justify-center shadow-glow-blue\">\n                  <CheckCircle2 className=\"w-6 h-6\" />\n                </div>\n                <div>\n                  <p className=\"text-sm font-bold text-white font-mono truncate max-w-xs sm:max-w-md\">\n                    {file.name}\n                  </p>\n                  <p className=\"text-xs text-[#38BDF8] mt-0.5 font-mono\">\n                    {(file.size / 1024).toFixed(1)} KB • Değiştirmek için tıklayın\n                  </p>\n                </div>\n              </div>\n            ) : (\n              <div className=\"flex flex-col items-center space-y-2.5\">\n                <div className=\"w-12 h-12 rounded-2xl bg-[#161B22] border border-white/10 text-[#38BDF8] flex items-center justify-center shadow-sm\">\n                  <Upload className=\"w-5 h-5\" />\n                </div>\n                <div>\n                  <p className=\"text-sm sm:text-base font-bold text-white\">\n                    WhatsApp .txt dosyasını buraya sürükleyin\n                  </p>\n                  <p className=\"text-xs text-[#94A3B8] mt-0.5\">\n                    veya dosya seçmek için tıklayın\n                  </p>\n                </div>\n                <span className=\"text-[11px] text-[#94A3B8] bg-white/5 px-3 py-1 rounded-full border border-white/10\">\n                  iOS ve Android sohbet dışa aktarımları desteklenir\n                </span>\n              </div>\n            )}\n          </div>\n\n          {/* Optional Title input */}\n          <div className=\"space-y-1\">\n            <label className=\"text-xs font-semibold text-[#94A3B8] block\">\n              Özel Sohbet Başlığı (İsteğe bağlı)\n            </label>\n            <input\n              type=\"text\"\n              value={customTitle}\n              onChange={(e) => setCustomTitle(e.target.value)}\n              placeholder=\"Örn: Hafta Sonu Çetesi 🍕\"\n              className=\"w-full text-xs sm:text-sm bg-[#0B0D11] border border-white/10 rounded-2xl px-4 py-3 text-white placeholder-[#64748B] focus:outline-none focus:border-[#38BDF8] transition-colors\"\n            />\n          </div>\n\n          {error && (\n            <div className=\"p-3 bg-red-950/60 border border-red-800 rounded-2xl flex items-center gap-2.5 text-xs text-red-300\">\n              <AlertCircle className=\"w-4 h-4 shrink-0\" />\n              <span>{error}</span>\n            </div>\n          )}\n\n          {/* Action Button */}\n          <Button\n            variant=\"blue\"\n            size=\"lg\"\n            onClick={handleUploadAndAnalyze}\n            isLoading={isLoading}\n            disabled={!file}\n            className=\"w-full font-bold text-sm sm:text-base py-3.5 shadow-glow-blue\"\n          >\n            <Sparkles className=\"w-4 h-4 text-[#0A0C0E]\" />\n            <span>Analiz Et & Wrapped'ı Aç</span>\n          </Button>\n\n          {/* Trust Guarantee */}\n          <div className=\"pt-3 border-t border-white/10 flex items-center justify-center gap-2 text-xs text-[#94A3B8]\">\n            <ShieldCheck className=\"w-4 h-4 text-[#38BDF8]\" />\n            <span>Verileriniz güvendedir — ham mesajlar sunucuya kaydedilmez.</span>\n          </div>\n\n        </div>\n\n        {/* SAĞ: Özellik Kartları (Features Showcase) */}\n        <div className=\"lg:col-span-5 space-y-4 flex flex-col justify-between\">\n          \n          {/* Feature 1: Wrapped Story Modu */}\n          <div className=\"p-5 rounded-3xl bg-[#11141A] border border-white/10 hover:border-[#38BDF8]/40 transition-all duration-300 space-y-2\">\n            <div className=\"flex items-center gap-3\">\n              <div className=\"w-10 h-10 rounded-2xl bg-[#0284C7]/20 border border-[#38BDF8]/30 flex items-center justify-center text-[#38BDF8] shrink-0\">\n                <Sparkles className=\"w-5 h-5\" />\n              </div>\n              <div>\n                <h4 className=\"text-base font-bold text-white\">Spotify Wrapped Tarzı Story</h4>\n                <span className=\"text-[11px] text-[#38BDF8] font-mono\">Tam Ekran & PDF Albümü</span>\n              </div>\n            </div>\n            <p className=\"text-xs text-[#94A3B8] leading-relaxed font-sans pt-1\">\n              Gruptaki en alevli saatleri, rekor mesaj sayılarını ve en çok kullanılan emojileri Instagram Story akışında izleyin veya PDF olarak indirin.\n            </p>\n          </div>\n\n          {/* Feature 2: Grup Kişilik Ödülleri */}\n          <div className=\"p-5 rounded-3xl bg-[#11141A] border border-white/10 hover:border-[#38BDF8]/40 transition-all duration-300 space-y-2\">\n            <div className=\"flex items-center gap-3\">\n              <div className=\"w-10 h-10 rounded-2xl bg-[#0284C7]/20 border border-[#38BDF8]/30 flex items-center justify-center text-[#38BDF8] shrink-0\">\n                <Trophy className=\"w-5 h-5\" />\n              </div>\n              <div>\n                <h4 className=\"text-base font-bold text-white\">Grup Kişilik Ödülleri</h4>\n                <span className=\"text-[11px] text-[#38BDF8] font-mono\">Gece Kuşu 🦉 • Hayalet 👻 • Jet ⚡</span>\n              </div>\n            </div>\n            <p className=\"text-xs text-[#94A3B8] leading-relaxed font-sans pt-1\">\n              Yapay zekamız kimin geç cevap verdiğini, kimin geceleri yazdığını ve kimin paragraflara doyamadığını hesaplayıp unvanlarını dağıtır.\n            </p>\n          </div>\n\n          {/* Feature 3: Sıfır Metin Depolama & Güvenlik */}\n          <div className=\"p-5 rounded-3xl bg-[#11141A] border border-white/10 hover:border-[#38BDF8]/40 transition-all duration-300 space-y-2\">\n            <div className=\"flex items-center gap-3\">\n              <div className=\"w-10 h-10 rounded-2xl bg-[#0284C7]/20 border border-[#38BDF8]/30 flex items-center justify-center text-[#38BDF8] shrink-0\">\n                <Lock className=\"w-5 h-5\" />\n              </div>\n              <div>\n                <h4 className=\"text-base font-bold text-white\">Sıfır Metin Saklama & Şifreli Giriş</h4>\n                <span className=\"text-[11px] text-[#38BDF8] font-mono\">%100 Gizli & Şifreli Erişim</span>\n              </div>\n            </div>\n            <p className=\"text-xs text-[#94A3B8] leading-relaxed font-sans pt-1\">\n              Ham mesaj metinleri veritabanına kaydedilmez. Sadece hesaplanan istatistikler ve PIN ile korunan davet linkiniz saklanır.\n            </p>\n          </div>\n\n          {/* Feature 4: Artımlı Güncelleme */}\n          <div className=\"p-5 rounded-3xl bg-[#11141A] border border-white/10 hover:border-[#38BDF8]/40 transition-all duration-300 space-y-2\">\n            <div className=\"flex items-center gap-3\">\n              <div className=\"w-10 h-10 rounded-2xl bg-[#0284C7]/20 border border-[#38BDF8]/30 flex items-center justify-center text-[#38BDF8] shrink-0\">\n                <RefreshCw className=\"w-5 h-5\" />\n              </div>\n              <div>\n                <h4 className=\"text-base font-bold text-white\">Artımlı Sohbet Güncelleme</h4>\n                <span className=\"text-[11px] text-[#38BDF8] font-mono\">Incremental Delta Tracker</span>\n              </div>\n            </div>\n            <p className=\"text-xs text-[#94A3B8] leading-relaxed font-sans pt-1\">\n              Yeni bir dışa aktarım yüklediğinizde sıfırdan başlamazsınız; sistem önceki mesajları tanır ve yalnızca yeni mesajları ekler.\n            </p>\n          </div>\n\n        </div>\n\n      </div>\n    </section>\n  );\n};\n
+      const res = await fetch('/api/chats', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.limitReached) {
+          onOpenLimitModal();
+        }
+        throw new Error(data.error || 'Sohbet analiz edilemedi.');
+      }
+
+      if (data.chat?.id) {
+        onSuccess(data.chat.id);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Dosya işlenirken beklenmeyen bir hata oluştu.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <section id="upload-hub" className="scroll-mt-24">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* SOL: Yükleme İstasyonu (Upload Box) */}
+        <div className="lg:col-span-7 rounded-3xl bg-[#11141A] border border-white/10 p-6 sm:p-8 shadow-2xl space-y-5 relative overflow-hidden">
+          
+          {/* Ambient Top Glow */}
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#38BDF8] to-transparent opacity-80" />
+
+          <div>
+            <span className="w-10 h-10 rounded-2xl bg-[#0284C7]/20 border border-[#38BDF8]/30 text-[#38BDF8] inline-flex items-center justify-center font-emoji text-xl shadow-glow-blue mb-2">
+              💬✨
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+              Sohbetinizi Yükleyin
+            </h2>
+            <p className="text-xs sm:text-sm text-[#94A3B8] font-sans mt-1">
+              WhatsApp uygulamasından <strong>"Sohbeti Dışa Aktar"</strong> (.txt veya iPhone .zip) ile aldığınız dosyayı bırakın.
+            </p>
+          </div>
+
+          {/* Drag & Drop Zone */}
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`rounded-3xl border-2 border-dashed p-6 sm:p-8 text-center cursor-pointer transition-all duration-300 ${
+              isDragging
+                ? 'border-[#38BDF8] bg-[#38BDF8]/10 scale-[0.99]'
+                : file
+                ? 'border-[#38BDF8] bg-[#0B0D11]'
+                : 'border-white/15 hover:border-[#38BDF8]/60 bg-[#0B0D11] hover:bg-[#0E1015]'
+            }`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,.zip,application/zip,application/x-zip-compressed,multipart/x-zip,text/plain"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+
+            {isExtractingZip ? (
+              <div className="flex flex-col items-center space-y-3 py-2">
+                <Loader2 className="w-9 h-9 text-[#38BDF8] animate-spin" />
+                <p className="text-xs font-semibold text-white">
+                  iPhone ZIP arşivi açılıyor ve sohbet ayıklanıyor...
+                </p>
+              </div>
+            ) : file ? (
+              <div className="flex flex-col items-center space-y-2.5">
+                <div className="w-12 h-12 rounded-2xl bg-[#0284C7] text-white flex items-center justify-center shadow-glow-blue">
+                  {isZip ? <FileArchive className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white font-mono truncate max-w-xs sm:max-w-md">
+                    {displayFileName || file.name}
+                  </p>
+                  <p className="text-xs text-[#38BDF8] mt-0.5 font-mono">
+                    {isZip ? '✨ iPhone ZIP Sohbeti Hazır • ' : ''}
+                    {(displayFileSize ? displayFileSize / 1024 : file.size / 1024).toFixed(1)} KB • Değiştirmek için tıklayın
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center space-y-2.5">
+                <div className="w-12 h-12 rounded-2xl bg-[#161B22] border border-white/10 text-[#38BDF8] flex items-center justify-center shadow-sm">
+                  <Upload className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm sm:text-base font-bold text-white">
+                    WhatsApp dosyasını buraya sürükleyin
+                  </p>
+                  <p className="text-xs text-[#94A3B8] mt-0.5">
+                    iPhone / Android .zip veya .txt seçmek için tıklayın
+                  </p>
+                </div>
+                <span className="text-[11px] text-[#94A3B8] bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                  iPhone (.zip), Android ve Masaüstü (.txt) desteklenir
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Optional Title input */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-[#94A3B8] block">
+              Özel Sohbet Başlığı (İsteğe bağlı)
+            </label>
+            <input
+              type="text"
+              value={customTitle}
+              onChange={(e) => setCustomTitle(e.target.value)}
+              placeholder="Örn: Hafta Sonu Çetesi 🍕"
+              className="w-full text-xs sm:text-sm bg-[#0B0D11] border border-white/10 rounded-2xl px-4 py-3 text-white placeholder-[#64748B] focus:outline-none focus:border-[#38BDF8] transition-colors"
+            />
+          </div>
+
+          {error && (
+            <div className="p-3 bg-red-950/60 border border-red-800 rounded-2xl flex items-center gap-2.5 text-xs text-red-300">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Action Button */}
+          <Button
+            variant="blue"
+            size="lg"
+            onClick={handleUploadAndAnalyze}
+            isLoading={isLoading}
+            disabled={!file || isExtractingZip}
+            className="w-full font-bold text-sm sm:text-base py-3.5 shadow-glow-blue"
+          >
+            <Sparkles className="w-4 h-4 text-[#0A0C0E]" />
+            <span>Analiz Et & Wrapped'ı Aç</span>
+          </Button>
+
+          {/* Trust Guarantee */}
+          <div className="pt-3 border-t border-white/10 flex items-center justify-center gap-2 text-xs text-[#94A3B8]">
+            <ShieldCheck className="w-4 h-4 text-[#38BDF8]" />
+            <span>Verileriniz güvendedir — ham mesajlar sunucuya kaydedilmez.</span>
+          </div>
+
+        </div>
+
+        {/* SAĞ: Özellik Kartları (Features Showcase) */}
+        <div className="lg:col-span-5 space-y-4 flex flex-col justify-between">
+          
+          {/* Feature 1: Wrapped Story Modu */}
+          <div className="p-5 rounded-3xl bg-[#11141A] border border-white/10 hover:border-[#38BDF8]/40 transition-all duration-300 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#0284C7]/20 border border-[#38BDF8]/30 flex items-center justify-center text-[#38BDF8] shrink-0">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-white">Spotify Wrapped Tarzı Story</h4>
+                <span className="text-[11px] text-[#38BDF8] font-mono">Tam Ekran & PDF Albümü</span>
+              </div>
+            </div>
+            <p className="text-xs text-[#94A3B8] leading-relaxed font-sans pt-1">
+              Gruptaki en alevli saatleri, rekor mesaj sayılarını ve en çok kullanılan emojileri Instagram Story akışında izleyin veya PDF olarak indirin.
+            </p>
+          </div>
+
+          {/* Feature 2: Grup Kişilik Ödülleri */}
+          <div className="p-5 rounded-3xl bg-[#11141A] border border-white/10 hover:border-[#38BDF8]/40 transition-all duration-300 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#0284C7]/20 border border-[#38BDF8]/30 flex items-center justify-center text-[#38BDF8] shrink-0">
+                <Trophy className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-white">Grup Kişilik Ödülleri</h4>
+                <span className="text-[11px] text-[#38BDF8] font-mono">Gece Kuşu 🦉 • Hayalet 👻 • Jet ⚡</span>
+              </div>
+            </div>
+            <p className="text-xs text-[#94A3B8] leading-relaxed font-sans pt-1">
+              Yapay zekamız kimin geç cevap verdiğini, kimin geceleri yazdığını ve kimin paragraflara doyamadığını hesaplayıp unvanlarını dağıtır.
+            </p>
+          </div>
+
+          {/* Feature 3: Sıfır Metin Depolama & Güvenlik */}
+          <div className="p-5 rounded-3xl bg-[#11141A] border border-white/10 hover:border-[#38BDF8]/40 transition-all duration-300 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#0284C7]/20 border border-[#38BDF8]/30 flex items-center justify-center text-[#38BDF8] shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-white">Sıfır Metin Saklama & Şifreli Giriş</h4>
+                <span className="text-[11px] text-[#38BDF8] font-mono">%100 Gizli & Şifreli Erişim</span>
+              </div>
+            </div>
+            <p className="text-xs text-[#94A3B8] leading-relaxed font-sans pt-1">
+              Ham mesaj metinleri veritabanına kaydedilmez. Sadece hesaplanan istatistikler ve PIN ile korunan davet linkiniz saklanır.
+            </p>
+          </div>
+
+          {/* Feature 4: Artımlı Güncelleme */}
+          <div className="p-5 rounded-3xl bg-[#11141A] border border-white/10 hover:border-[#38BDF8]/40 transition-all duration-300 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#0284C7]/20 border border-[#38BDF8]/30 flex items-center justify-center text-[#38BDF8] shrink-0">
+                <RefreshCw className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-white">Artımlı Sohbet Güncelleme</h4>
+                <span className="text-[11px] text-[#38BDF8] font-mono">Incremental Delta Tracker</span>
+              </div>
+            </div>
+            <p className="text-xs text-[#94A3B8] leading-relaxed font-sans pt-1">
+              Yeni bir dışa aktarım yüklediğinizde sıfırdan başlamazsınız; sistem önceki mesajları tanır ve yalnızca yeni mesajları ekler.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+  );
+};
