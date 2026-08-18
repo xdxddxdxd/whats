@@ -31,11 +31,18 @@ export interface WrappedSlideData {
   extraData?: Record<string, any>;
 }
 
+export type AIProvider =
+  | 'gemini'
+  | 'groq'
+  | 'openrouter'
+  | 'smart_engine'
+  | `multi-agent (${string})`;
+
 export interface AIAnalysisResult {
   summary: string;
   groupVibe: string;
   superlatives: SuperlativeCard[];
   wrappedSlides: WrappedSlideData[];
   generatedAt: string;
-  provider: 'gemini' | 'openai' | 'claude' | 'smart_engine';
+  provider: AIProvider;
 }

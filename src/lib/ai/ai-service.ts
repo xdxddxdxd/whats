@@ -1,5 +1,5 @@
 import { ChatMetrics } from '../analytics/stats-engine';
-import { AIAnalysisResult, SuperlativeCard, WrappedSlideData } from './types';
+import { AIAnalysisResult, SuperlativeCard, WrappedSlideData, AIProvider } from './types';
 import { buildAnalysisPrompt } from './prompts';
 import { generateSmartRuleBasedAnalysis } from './rules-engine';
 
@@ -10,9 +10,19 @@ interface AgentResponse {
   wrappedSlides?: WrappedSlideData[];
 }
 
+function cleanAndParseJSON(raw: string): any {
+  if (!raw) return null;
+  let text = raw.trim();
+  // Strip Markdown code blocks ```json ... ```
+  if (text.startsWith('```')) {
+    text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  }
+  return JSON.parse(text);
+}
+
 /**
  * 1. Gemini Agent: Master of Turkish Humor, Wrapped Storytelling & AI Oracle
- * Strict timeout: 5000ms
+ * Uses header-based auth and strict timeout: 5500ms
  */
 async function callGeminiAgent(
   chatTitle: string,
@@ -20,20 +30,28 @@ async function callGeminiAgent(
   chatType: 'group' | 'direct',
   apiKey: string
 ): Promise<AgentResponse | null> {
-  const prompt = `${buildAnalysisPrompt(chatTitle, metrics, chatType)}
+  const leanMetrics: ChatMetrics = {
+    ...metrics,
+    participants: metrics.participants.slice(0, 10),
+  };
+
+  const prompt = `${buildAnalysisPrompt(chatTitle, leanMetrics, chatType)}
 ÖZELLİKLE: Spotify Wrapped 7 slaytlık hikaye anlatısına, eğlenceli Türkçe esprilere ve grup kehanetine odaklan.`;
 
-  const model = 'gemini-2.5-flash';
+  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           responseMimeType: 'application/json',
-          temperature: 0.85,
+          temperature: 0.6,
         },
       }),
       signal: AbortSignal.timeout(5500),
@@ -43,11 +61,11 @@ async function callGeminiAgent(
       const data = await response.json();
       const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (rawContent) {
-        return JSON.parse(rawContent);
+        return cleanAndParseJSON(rawContent);
       }
     }
   } catch (err) {
-    console.warn(`Gemini (${model}) error / timeout:`, err);
+    console.warn(`Gemini (${model}) notice:`, err);
   }
   return null;
 }
@@ -62,13 +80,14 @@ async function callOpenRouterAgent(
   chatType: 'group' | 'direct',
   apiKey: string
 ): Promise<AgentResponse | null> {
+  const topParticipants = metrics.participants.slice(0, 8);
   const prompt = `Sen derin ilişki ve karakter analizi yapan bir psikolog ve sohbet dedektifisin.
 GÖREV: Aşağıdaki WhatsApp verilerinden katılımcıların gruptaki rollerini, birbirleriyle dinamiklerini ve derin kişilik unvanlarını (superlatives) belirle.
 
 SOHBET DETAYLARI:
 - Başlık: ${chatTitle}
 - Toplam Mesaj: ${metrics.totalMessages}
-- Katılımcılar: ${metrics.participants.map(p => `${p.name}: ${p.messageCount} mesaj (%${p.messagePercentage}), gece: ${p.nightMessages}, ort. yanıt: ${p.avgResponseTimeMinutes || '-'} dk`).join(', ')}
+- Katılımcılar: ${topParticipants.map(p => `${p.name}: ${p.messageCount} mesaj (%${p.messagePercentage}), gece: ${p.nightMessages}, ort. yanıt: ${p.avgResponseTimeMinutes || '-'} dk`).join(', ')}
 
 SADECE geçerli JSON döndür:
 {
@@ -88,7 +107,7 @@ SADECE geçerli JSON döndür:
   ]
 }`;
 
-  const model = 'openai/gpt-oss-20b:free';
+  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-oss-20b:free';
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -103,7 +122,7 @@ SADECE geçerli JSON döndür:
           { role: 'user', content: prompt },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.7,
+        temperature: 0.6,
       }),
       signal: AbortSignal.timeout(4500),
     });
@@ -112,11 +131,11 @@ SADECE geçerli JSON döndür:
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content;
       if (content) {
-        return JSON.parse(content);
+        return cleanAndParseJSON(content);
       }
     }
   } catch (err) {
-    console.warn(`OpenRouter (${model}) error / timeout:`, err);
+    console.warn(`OpenRouter (${model}) notice:`, err);
   }
   return null;
 }
@@ -140,7 +159,7 @@ SADECE JSON döndür:
   "groupVibe": "Vurucu Vibe Başlığı"
 }`;
 
-  const model = 'openai/gpt-oss-120b';
+  const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -155,6 +174,7 @@ SADECE JSON döndür:
           { role: 'user', content: prompt },
         ],
         response_format: { type: 'json_object' },
+        temperature: 0.6,
       }),
       signal: AbortSignal.timeout(4000),
     });
@@ -163,11 +183,11 @@ SADECE JSON döndür:
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content;
       if (content) {
-        return JSON.parse(content);
+        return cleanAndParseJSON(content);
       }
     }
   } catch (err) {
-    console.warn(`Groq (${model}) error / timeout:`, err);
+    console.warn(`Groq (${model}) notice:`, err);
   }
   return null;
 }
@@ -256,11 +276,11 @@ export async function generateAIAnalysis(
     }
   }
 
-  const providerLabel =
+  const providerLabel: AIProvider =
     successfulAgents.length > 1
-      ? (`multi-agent (${successfulAgents.join(' + ')})` as any)
+      ? `multi-agent (${successfulAgents.join(' + ')})`
       : successfulAgents.length === 1
-      ? (successfulAgents[0] as any)
+      ? (successfulAgents[0] as AIProvider)
       : 'smart_engine';
 
   return {

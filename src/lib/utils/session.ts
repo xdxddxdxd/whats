@@ -2,15 +2,30 @@ export function generateOwnerToken(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return 'own_' + crypto.randomUUID().replace(/-/g, '');
   }
+  const arr = new Uint8Array(16);
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(arr);
+    return 'own_' + Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+  }
   return 'own_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
 export function generatePin(): string {
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    return (100000 + (arr[0] % 900000)).toString();
+  }
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 export function generateInviteCode(): string {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const arr = new Uint8Array(6);
+    crypto.getRandomValues(arr);
+    return Array.from(arr, b => chars[b % chars.length]).join('');
+  }
   let code = '';
   for (let i = 0; i < 6; i++) {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
