@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { processUploadedChatFile } from '@/lib/parser/zip-helper';
+import { getClientOwnerToken, setClientOwnerToken } from '@/lib/utils/session';
 
 interface UploadAndFeaturesSectionProps {
   ownerToken: string;
@@ -65,10 +66,22 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
 
   const handleFileSelection = async (rawFile: File) => {
     setError(null);
+
+    if (rawFile.size === 0) {
+      setError('Seçilen dosya boş (0 KB). Lütfen mesaj içeren gerçek bir sohbet dosyası seçin.');
+      setFile(null);
+      return;
+    }
+
     setIsExtractingZip(true);
 
     try {
       const { file: extractedTxtFile, inferredTitle, originalFileName } = await processUploadedChatFile(rawFile);
+      
+      if (extractedTxtFile.size === 0) {
+        throw new Error('Çıkarılan sohbet dosyasının içi boş görünüyor.');
+      }
+
       setFile(extractedTxtFile);
       setDisplayFileName(originalFileName);
       setDisplayFileSize(rawFile.size);
@@ -91,8 +104,8 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
       return;
     }
 
-    if (!file) {
-      setError('Lütfen bir WhatsApp sohbet dosyası (.txt veya iPhone .zip) seçin.');
+    if (!file || file.size === 0) {
+      setError('Lütfen mesaj içeren geçerli bir WhatsApp sohbet dosyası (.txt veya iPhone .zip) seçin.');
       return;
     }
 
@@ -100,9 +113,10 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
     setError(null);
 
     try {
+      const token = ownerToken || getClientOwnerToken();
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('owner_token', ownerToken);
+      formData.append('owner_token', token);
       if (customTitle.trim()) {
         formData.append('title', customTitle.trim());
       }
@@ -112,20 +126,28 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
         body: formData,
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         if (data.limitReached) {
           onOpenLimitModal();
         }
-        throw new Error(data.error || 'Sohbet analiz edilemedi.');
+        throw new Error(data.error || 'Sohbet analiz edilirken sunucu yanıt vermedi.');
+      }
+
+      if (data.owner_token) {
+        setClientOwnerToken(data.owner_token);
       }
 
       if (data.chat?.id) {
         onSuccess(data.chat.id);
       }
     } catch (err: any) {
-      setError(err.message || 'Dosya işlenirken beklenmeyen bir hata oluştu.');
+      if (err.message === 'Failed to fetch') {
+        setError('Sunucu bağlantısı sağlanamadı veya işlem zaman aşımına uğradı. Lütfen tekrar deneyin.');
+      } else {
+        setError(err.message || 'Dosya işlenirken beklenmeyen bir hata oluştu.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -244,7 +266,7 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
             size="lg"
             onClick={handleUploadAndAnalyze}
             isLoading={isLoading}
-            disabled={!file || isExtractingZip}
+            disabled={!file || file.size === 0 || isExtractingZip}
             className="w-full font-bold text-sm sm:text-base py-3.5 shadow-glow-blue"
           >
             <Sparkles className="w-4 h-4 text-[#0A0C0E]" />

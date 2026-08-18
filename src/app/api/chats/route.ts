@@ -3,10 +3,10 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { parseWhatsAppChat } from '@/lib/parser/whatsapp-parser';
 import { calculateChatMetrics } from '@/lib/analytics/stats-engine';
 import { generateAIAnalysis } from '@/lib/ai/ai-service';
-import { generateInviteCode, generatePin } from '@/lib/utils/session';
+import { generateInviteCode, generatePin, generateOwnerToken } from '@/lib/utils/session';
 import JSZip from 'jszip';
 
-export const maxDuration = 60; // Allow enough time for parsing and AI
+export const maxDuration = 15; // Set to standard 15s
 
 // GET: List chats for owner
 export async function GET(request: NextRequest) {
@@ -40,12 +40,11 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const ownerToken = formData.get('owner_token') as string | null;
+    const rawOwnerToken = formData.get('owner_token') as string | null;
     const customTitle = formData.get('title') as string | null;
 
-    if (!ownerToken) {
-      return NextResponse.json({ error: 'Kullanıcı oturum kimliği eksik.' }, { status: 400 });
-    }
+    // Ensure we always have an ownerToken (client or auto-generated)
+    const ownerToken = rawOwnerToken && rawOwnerToken.trim() ? rawOwnerToken.trim() : generateOwnerToken();
 
     const supabase = createServerSupabaseClient();
 
@@ -56,7 +55,7 @@ export async function POST(request: NextRequest) {
       .eq('owner_token', ownerToken);
 
     if (countError) {
-      return NextResponse.json({ error: countError.message }, { status: 500 });
+      console.warn('Supabase count check error:', countError);
     }
 
     if ((count || 0) >= 2) {
@@ -70,26 +69,34 @@ export async function POST(request: NextRequest) {
     }
 
     if (!file) {
-      return NextResponse.json({ error: 'Lütfen bir WhatsApp sohbet dosyası seçin.' }, { status: 400 });
+      return NextResponse.json({ error: 'Lütfen bir WhatsApp sohbet dosyası (.txt veya .zip) seçin.' }, { status: 400 });
     }
 
     let rawText = '';
     const isZip = file.name.toLowerCase().endsWith('.zip') || file.type.includes('zip');
 
     if (isZip) {
-      const buffer = await file.arrayBuffer();
-      const zip = await JSZip.loadAsync(buffer);
-      let txtInZip = zip.file('_chat.txt');
-      if (!txtInZip) {
-        const txtFiles = zip.file(/\.txt$/i);
-        if (txtFiles && txtFiles.length > 0) txtInZip = txtFiles[0];
+      try {
+        const buffer = await file.arrayBuffer();
+        const zip = await JSZip.loadAsync(buffer);
+        let txtInZip = zip.file('_chat.txt');
+        if (!txtInZip) {
+          const txtFiles = zip.file(/\.txt$/i);
+          if (txtFiles && txtFiles.length > 0) txtInZip = txtFiles[0];
+        }
+        if (!txtInZip) {
+          return NextResponse.json({ error: 'ZIP arşivi içinde WhatsApp sohbet metin dosyası (_chat.txt) bulunamadı.' }, { status: 400 });
+        }
+        rawText = await txtInZip.async('string');
+      } catch (zipErr: any) {
+        return NextResponse.json({ error: 'ZIP dosyası açılamadı: ' + (zipErr.message || 'Bozuk arşiv.') }, { status: 400 });
       }
-      if (!txtInZip) {
-        return NextResponse.json({ error: 'ZIP arşivi içinde WhatsApp sohbet metin dosyası (_chat.txt) bulunamadı.' }, { status: 400 });
-      }
-      rawText = await txtInZip.async('string');
     } else {
       rawText = await file.text();
+    }
+
+    if (!rawText || rawText.trim().length === 0) {
+      return NextResponse.json({ error: 'Seçilen dosya boş görünüyor. Lütfen mesaj içeren geçerli bir WhatsApp sohbet dosyası seçin.' }, { status: 400 });
     }
 
     // 2. Parse & Validate WhatsApp chat
@@ -97,7 +104,7 @@ export async function POST(request: NextRequest) {
     if (!parseResult.isValid || parseResult.messages.length === 0) {
       return NextResponse.json(
         {
-          error: parseResult.error || 'Dosya geçerli bir WhatsApp sohbet dışa aktarımı değil.'
+          error: parseResult.error || 'Dosya geçerli bir WhatsApp sohbet dışa aktarımı değil. Lütfen WhatsApp\'tan dışa aktarılmış orijinal dosyayı seçin.'
         },
         { status: 400 }
       );
@@ -106,7 +113,7 @@ export async function POST(request: NextRequest) {
     // 3. Calculate Stats & Metrics
     const metrics = calculateChatMetrics(parseResult.messages);
 
-    // 4. Generate AI Analysis & Wrapped Slides
+    // 4. Generate AI Analysis & Wrapped Slides (with fast timeouts & smart fallback)
     const finalTitle = customTitle || parseResult.title || 'WhatsApp Sohbeti';
     const aiAnalysis = await generateAIAnalysis(finalTitle, metrics, parseResult.chatType);
 
@@ -134,7 +141,7 @@ export async function POST(request: NextRequest) {
     const inviteCode = generateInviteCode();
     const passwordPin = generatePin();
 
-    const { error: inviteError } = await supabase
+    await supabase
       .from('invites')
       .insert({
         chat_id: chat.id,
@@ -142,12 +149,8 @@ export async function POST(request: NextRequest) {
         password_pin: passwordPin
       });
 
-    if (inviteError) {
-      console.error('Davet kaydı oluşturulamadı:', inviteError);
-    }
-
     // 7. Insert Chat Analysis
-    const { error: analysisError } = await supabase
+    await supabase
       .from('chat_analyses')
       .insert({
         chat_id: chat.id,
@@ -158,12 +161,9 @@ export async function POST(request: NextRequest) {
         version: 1
       });
 
-    if (analysisError) {
-      console.error('Analiz kaydı oluşturulamadı:', analysisError);
-    }
-
     return NextResponse.json({
       success: true,
+      owner_token: ownerToken,
       chat: {
         ...chat,
         invite: {

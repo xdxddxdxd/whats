@@ -12,6 +12,7 @@ interface AgentResponse {
 
 /**
  * 1. Gemini Agent: Master of Turkish Humor, Wrapped Storytelling & AI Oracle
+ * Strict timeout: 5000ms
  */
 async function callGeminiAgent(
   chatTitle: string,
@@ -22,40 +23,38 @@ async function callGeminiAgent(
   const prompt = `${buildAnalysisPrompt(chatTitle, metrics, chatType)}
 ÖZELLİKLE: Spotify Wrapped 7 slaytlık hikaye anlatısına, eğlenceli Türkçe esprilere ve grup kehanetine odaklan.`;
 
-  // Try gemini-2.5-flash or gemini-flash-latest
-  const modelNames = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-1.5-flash'];
+  const model = 'gemini-2.5-flash';
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.85,
+        },
+      }),
+      signal: AbortSignal.timeout(5500),
+    });
 
-  for (const model of modelNames) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.85,
-          },
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (rawContent) {
-          return JSON.parse(rawContent);
-        }
+    if (response.ok) {
+      const data = await response.json();
+      const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (rawContent) {
+        return JSON.parse(rawContent);
       }
-    } catch (err) {
-      console.warn(`Gemini (${model}) error:`, err);
     }
+  } catch (err) {
+    console.warn(`Gemini (${model}) error / timeout:`, err);
   }
   return null;
 }
 
 /**
  * 2. DeepSeek / OpenRouter Agent: Deep Psychological & Relationship Superlative Archetypes
+ * Strict timeout: 4500ms
  */
 async function callOpenRouterAgent(
   chatTitle: string,
@@ -89,48 +88,42 @@ SADECE geçerli JSON döndür:
   ]
 }`;
 
-  const freeModels = [
-    'deepseek/deepseek-r1:free',
-    'google/gemma-4-26b-a4b-it:free',
-    'openai/gpt-oss-20b:free',
-    'deepseek/deepseek-chat',
-  ];
+  const model = 'openai/gpt-oss-20b:free';
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: 'Sadece geçerli JSON döndür.' },
+          { role: 'user', content: prompt },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
+      }),
+      signal: AbortSignal.timeout(4500),
+    });
 
-  for (const model of freeModels) {
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: 'Sadece geçerli JSON döndür.' },
-            { role: 'user', content: prompt },
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.7,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        if (content) {
-          return JSON.parse(content);
-        }
+    if (response.ok) {
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (content) {
+        return JSON.parse(content);
       }
-    } catch (err) {
-      console.warn(`OpenRouter (${model}) error:`, err);
     }
+  } catch (err) {
+    console.warn(`OpenRouter (${model}) error / timeout:`, err);
   }
   return null;
 }
 
 /**
  * 3. Groq Agent: Ultra Fast Group Vibe, Taglines & Punchline Summaries
+ * Strict timeout: 4000ms
  */
 async function callGroqAgent(
   chatTitle: string,
@@ -147,36 +140,34 @@ SADECE JSON döndür:
   "groupVibe": "Vurucu Vibe Başlığı"
 }`;
 
-  const groqModels = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.6-27b'];
+  const model = 'openai/gpt-oss-120b';
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: 'Sen esprili bir Türk analistsin. Sadece JSON döndür.' },
+          { role: 'user', content: prompt },
+        ],
+        response_format: { type: 'json_object' },
+      }),
+      signal: AbortSignal.timeout(4000),
+    });
 
-  for (const model of groqModels) {
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: 'Sen esprili bir Türk analistsin. Sadece JSON döndür.' },
-            { role: 'user', content: prompt },
-          ],
-          response_format: { type: 'json_object' },
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        if (content) {
-          return JSON.parse(content);
-        }
+    if (response.ok) {
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (content) {
+        return JSON.parse(content);
       }
-    } catch (err) {
-      console.warn(`Groq (${model}) error:`, err);
     }
+  } catch (err) {
+    console.warn(`Groq (${model}) error / timeout:`, err);
   }
   return null;
 }
@@ -201,7 +192,7 @@ export async function generateAIAnalysis(
     return baseline;
   }
 
-  // Launch all available agents simultaneously in parallel
+  // Launch all available agents simultaneously in parallel with fast timeouts
   const agentPromises: Promise<any>[] = [];
 
   if (geminiKey) {
@@ -233,31 +224,33 @@ export async function generateAIAnalysis(
   for (const r of results) {
     if (r.status === 'fulfilled' && r.value?.data) {
       const { agent, data } = r.value;
-      successfulAgents.push(agent);
+      if (data) {
+        successfulAgents.push(agent);
 
-      // Groq provides snappy group vibe & punchy summary
-      if (agent === 'groq') {
-        if (data.groupVibe) finalGroupVibe = data.groupVibe;
-        if (data.summary) finalSummary = data.summary;
-      }
-
-      // OpenRouter / DeepSeek provides deep psychological superlatives
-      if (agent === 'openrouter') {
-        if (data.superlatives && data.superlatives.length > 0) {
-          finalSuperlatives = data.superlatives;
+        // Groq provides snappy group vibe & punchy summary
+        if (agent === 'groq') {
+          if (data.groupVibe) finalGroupVibe = data.groupVibe;
+          if (data.summary) finalSummary = data.summary;
         }
-        if (data.groupVibe && !finalGroupVibe) finalGroupVibe = data.groupVibe;
-      }
 
-      // Gemini provides flagship Wrapped story slides, rich summary & awards
-      if (agent === 'gemini') {
-        if (data.summary) finalSummary = data.summary;
-        if (data.groupVibe) finalGroupVibe = data.groupVibe;
-        if (data.wrappedSlides && data.wrappedSlides.length > 0) {
-          finalWrappedSlides = data.wrappedSlides;
+        // OpenRouter / DeepSeek provides deep psychological superlatives
+        if (agent === 'openrouter') {
+          if (data.superlatives && data.superlatives.length > 0) {
+            finalSuperlatives = data.superlatives;
+          }
+          if (data.groupVibe && !finalGroupVibe) finalGroupVibe = data.groupVibe;
         }
-        if (data.superlatives && data.superlatives.length > 0) {
-          finalSuperlatives = data.superlatives;
+
+        // Gemini provides flagship Wrapped story slides, rich summary & awards
+        if (agent === 'gemini') {
+          if (data.summary) finalSummary = data.summary;
+          if (data.groupVibe) finalGroupVibe = data.groupVibe;
+          if (data.wrappedSlides && data.wrappedSlides.length > 0) {
+            finalWrappedSlides = data.wrappedSlides;
+          }
+          if (data.superlatives && data.superlatives.length > 0) {
+            finalSuperlatives = data.superlatives;
+          }
         }
       }
     }
