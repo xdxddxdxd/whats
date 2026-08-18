@@ -36,7 +36,8 @@ export async function POST(
       .from('chat_analyses')
       .select('*')
       .eq('chat_id', chatId)
-      .order('created_at', { ascending: false })\n      .limit(1)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .single();
 
     const currentAnalysis = currentAnalysisData as any;
