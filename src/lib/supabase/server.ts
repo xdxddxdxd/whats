@@ -1,12 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://rpompnqoobdqirctctno.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwb21wbnFvb2JkcWlyY3RjdG5vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwNDIxMjQsImV4cCI6MjEwMjYxODEyNH0.so4LClA7hY_I44YrhzYEHwgUTyPp4opPUwnTM6TFrQE';
+import { Database } from './types';
 
 export function createServerSupabaseClient() {
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase ortam değişkenleri eksik. Lütfen NEXT_PUBLIC_SUPABASE_URL ve SUPABASE_SERVICE_ROLE_KEY veya NEXT_PUBLIC_SUPABASE_ANON_KEY değerlerini tanımlayın.');
+  }
+
+  return createClient<Database>(supabaseUrl, supabaseKey, {
     auth: {
       persistSession: false,
-    }
+      autoRefreshToken: false,
+    },
   });
 }

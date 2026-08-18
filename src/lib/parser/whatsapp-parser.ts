@@ -20,9 +20,9 @@ export interface ParseResult {
   error?: string;
 }
 
-// Simple fast hash for message uniqueness
-export function generateMessageHash(dateStr: string, sender: string, content: string): string {
-  const str = `${dateStr}__${sender}__${content.trim().slice(0, 80)}`;
+// Fast hash for message uniqueness with index and length to prevent collisions
+export function generateMessageHash(dateStr: string, sender: string, content: string, index = 0): string {
+  const str = `${index}__${dateStr}__${sender}__${content.trim().slice(0, 120)}__${content.length}`;
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
@@ -53,24 +53,32 @@ const MEDIA_PATTERNS = [
   'bu mesajı sildiniz'
 ];
 
-// System messages to skip
-const SYSTEM_PATTERNS = [
+// Strict system message patterns (Avoid single general words like 'added' or 'left' that could be in user texts)
+const SYSTEM_PHRASES = [
   'uçtan uca şifrelidir',
   'end-to-end encrypted',
   'grup simgesi',
-  'grup açıklamasını',
-  'grup konusunu',
+  'grup açıklamasını değiştirdi',
+  'grup konusunu değiştirdi',
   'gruba eklendi',
   'gruptan ayrıldı',
-  'güvenlik kodu',
+  'gruptan çıkarıldı',
+  'güvenlik kodu değişti',
   'changed the group',
   'created group',
-  'added',
-  'left',
+  'changed the subject',
+  'left the group',
+  'was removed',
+  'joined using this group\'s invite link',
   'security code changed',
-  'invite link',
-  'davet bağlantısı'
+  'grup davet bağlantısı',
+  'grubun simgesini sildi'
 ];
+
+function isSystemMessage(sender: string, content: string): boolean {
+  const combined = `${sender} ${content}`.toLowerCase();
+  return SYSTEM_PHRASES.some(phrase => combined.includes(phrase));
+}
 
 // Helper to parse date/time parts reliably
 function parseDateTime(datePart: string, timePart: string): Date | null {
@@ -143,7 +151,7 @@ export function parseWhatsAppChat(rawText: string, defaultTitle?: string): Parse
       chatType: 'group',
       messages: [],
       participants: [],
-      error: 'Yüklenen dosya boş görünüyor. Lütfen geçerli bir WhatsApp sohbet dışa aktarım dosyası (.txt) seçin.'
+      error: 'Yüklenen dosya boş görünüyor. Lütfen geçerli bir WhatsApp sohbet dışa aktarım dosyası (.txt veya .zip) seçin.'
     };
   }
 
@@ -173,11 +181,8 @@ export function parseWhatsAppChat(rawText: string, defaultTitle?: string): Parse
     if (!line.trim()) continue;
 
     let match = line.match(iosRegex);
-    let isIos = true;
-
     if (!match) {
       match = line.match(androidRegex);
-      isIos = false;
     }
 
     if (match) {
@@ -188,8 +193,7 @@ export function parseWhatsAppChat(rawText: string, defaultTitle?: string): Parse
       const content = match[4];
 
       // Check if this is a system message pretending to have a sender
-      const isSystem = SYSTEM_PATTERNS.some(p => sender.toLowerCase().includes(p) || content.toLowerCase().includes(p));
-      if (isSystem) {
+      if (isSystemMessage(sender, content)) {
         continue;
       }
 
@@ -210,14 +214,14 @@ export function parseWhatsAppChat(rawText: string, defaultTitle?: string): Parse
         sender,
         content,
         isMedia,
-        hash: generateMessageHash(`${datePart} ${timePart}`, sender, content)
+        hash: generateMessageHash(`${datePart} ${timePart}`, sender, content, messages.length)
       };
     } else {
       // Check if it's a system line
       const sysMatch = line.match(systemRegex);
       if (sysMatch) {
         const sysContent = sysMatch[3] || '';
-        if (SYSTEM_PATTERNS.some(p => sysContent.toLowerCase().includes(p))) {
+        if (SYSTEM_PHRASES.some(p => sysContent.toLowerCase().includes(p))) {
           // It's a system message, ignore
           continue;
         }
@@ -226,7 +230,7 @@ export function parseWhatsAppChat(rawText: string, defaultTitle?: string): Parse
       // If currentMessage exists, this is a multi-line message continuation
       if (currentMessage) {
         currentMessage.content += '\n' + line;
-        currentMessage.hash = generateMessageHash(currentMessage.rawDate, currentMessage.sender, currentMessage.content);
+        currentMessage.hash = generateMessageHash(currentMessage.rawDate, currentMessage.sender, currentMessage.content, messages.length);
       }
     }
   }
@@ -243,7 +247,7 @@ export function parseWhatsAppChat(rawText: string, defaultTitle?: string): Parse
       chatType: 'group',
       messages: [],
       participants: [],
-      error: 'Bu dosya geçerli bir WhatsApp sohbet dışa aktarımı gibi görünmüyor. Lütfen WhatsApp uygulamasından "Sohbeti Dışa Aktar" (.txt) seçeneğiyle aldığınız orijinal metin dosyasını yükleyin.'
+      error: 'Bu dosya geçerli bir WhatsApp sohbet dışa aktarımı gibi görünmüyor. Lütfen WhatsApp uygulamasından "Sohbeti Dışa Aktar" (.txt veya iPhone .zip) seçeneğiyle aldığınız orijinal dosyayı yükleyin.'
     };
   }
 
@@ -293,7 +297,6 @@ export function extractIncrementalMessages(
 
   const lastIndex = result.messages.findIndex(m => m.hash === lastKnownHash);
   if (lastIndex === -1) {
-    // If exact hash not found (e.g. slight reformat), compare dates or return all
     return { newMessages: result.messages, allMessages: result.messages, hasNew: true };
   }
 
