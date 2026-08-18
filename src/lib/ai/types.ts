@@ -6,6 +6,8 @@ export interface SuperlativeCard {
   color: string;
   description: string;
   quote?: string;
+  sampleQuotes?: string[];
+  sampleWords?: string[];
   statLabel: string;
   statValue: string;
 }
