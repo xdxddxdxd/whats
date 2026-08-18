@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* --- Panel / Açık mod --- */
+    --panel-bg: #FFFFFF;
+    --panel-bg-soft: #F7F9FC;
+    --panel-ink: #0A0A0A;
+    --panel-ink-soft: #6B7280;
+    --panel-card: #FFFFFF;
+    --border-soft: #E5E9F0;
+
+    /* --- Tek vurgu rengi: bebek mavisi --- */
+    --accent-blue: #7DD3FC;
+    --accent-blue-strong: #38BDF8;
+    --accent-blue-deep: #0284C7;
+
+    /* --- Wrapped / Koyu mod --- */
+    --wrap-bg: #0A0A0A;
+    --wrap-bg-2: #141414;
+    --wrap-ink: #FFFFFF;
+    --wrap-ink-soft: #A3A3A3;
+    --wrap-glow-1: #38BDF8;
+    --wrap-glow-2: #0284C7;
+
+    /* Fonts */
+    --font-serif: 'Fraunces', Georgia, serif;
+    --font-caveat: 'Caveat', cursive;
+    --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    background-color: #07090C;
+    color: #FFFFFF;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Force Apple Color Emoji priority for consistent emoji rendering */
+  .font-emoji, [class*="emoji"] {\n    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif !important;
+  }
+}
+
+/* Explicit custom font utility for Caveat handwriting */
+.font-caveat {
+  font-family: 'Caveat', cursive, sans-serif !important;
+}
+
+.font-serif {
+  font-family: 'Fraunces', Georgia, serif !important;
+}
+
+/* Custom Speech Bubble Tail with Baby Blue & Neutral support */
+.chat-bubble-card {
+  position: relative;
+  border-radius: 1.25rem;
+}
+
+.chat-bubble-tail-left::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 24px;
+  width: 14px;
+  height: 14px;
+  background-color: inherit;
+  border-bottom: 1px solid var(--border-soft);
+  border-right: 1px solid var(--border-soft);
+  transform: rotate(45deg);
+  border-bottom-right-radius: 3px;
+}
+
+.chat-bubble-tail-right::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  right: 24px;
+  width: 14px;
+  height: 14px;
+  background-color: inherit;
+  border-bottom: 1px solid var(--border-soft);
+  border-left: 1px solid var(--border-soft);
+  transform: rotate(-45deg);
+  border-bottom-left-radius: 3px;
+}
+
+/* Story Progress Bar */
+@keyframes progressAnimation {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+.story-progress-fill {
+  animation: progressAnimation 7s linear forwards;
+}
+
+.story-progress-paused {
+  animation-play-state: paused;
+}
+
+/* Typing Dots Animation */
+.typing-dot {
+  width: 5px;
+  height: 5px;
+  background-color: #0284C7;
+  border-radius: 50%;
+  display: inline-block;
+  animation: typing 1.4s infinite ease-in-out both;
+}
+
+.typing-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+/* Custom Clean Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B0D11;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
