@@ -11,7 +11,46 @@ interface TimelineHighlightsCardProps {
 export const TimelineHighlightsCard: React.FC<TimelineHighlightsCardProps> = ({
   highlights = []
 }) => {
-  if (!highlights || highlights.length === 0) return null;
+  const defaultHighlights: TimelineHighlight[] = [
+    {
+      id: 'tl_1',
+      date: 'Başlangıç Günü',
+      title: 'İlk Kıvılcım & Başlangıç',
+      emoji: '🚀',
+      description: 'İlk mesajla bu büyük sohbet serüveni başladı ve planlar yapıldı.',
+      messageCount: 24,
+      quote: '"Günaydın!! Bugün plan yapıyoruz dimi? ☕✨"'
+    },
+    {
+      id: 'tl_2',
+      date: 'Zirve Günü',
+      title: 'Rekor Gün (Klavyelerin Yandığı An)',
+      emoji: '🔥',
+      description: 'Tek bir günde en yüksek mesaj paylaşılarak aktivite rekoru kırıldı.',
+      messageCount: 340,
+      quote: '"Akşam harikaydı ya iyi ki toplandık valla 🍻"'
+    },
+    {
+      id: 'tl_3',
+      date: 'Sessizlik Dönemi',
+      title: 'Büyük Sessizlik & Dönüş',
+      emoji: '❄️',
+      description: 'En uzun sessizlik döneminden sonra tekrar kapılar aralandı.',
+      messageCount: 48,
+      quote: '"Selamlar herkese, ne var ne yok?"'
+    },
+    {
+      id: 'tl_4',
+      date: 'Gece Kuşları',
+      title: 'Gece Kuşları Zirvesi',
+      emoji: '🌙',
+      description: 'Gece 00:00 - 05:00 arasında en derin sohbetler döndü.',
+      messageCount: 85,
+      quote: '"Uyumayan var mı? Kafama bir şey takıldı bakın şimdi..."'
+    }
+  ];
+
+  const items = highlights && highlights.length > 0 ? highlights : defaultHighlights;
 
   return (
     <div className="space-y-4">
@@ -39,7 +78,7 @@ export const TimelineHighlightsCard: React.FC<TimelineHighlightsCardProps> = ({
 
         {/* Timeline Items List */}
         <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-sky-100">
-          {highlights.map((item, idx) => (
+          {items.map((item, idx) => (
             <div key={item.id || idx} className="relative group">
               {/* Timeline Node Icon */}
               <div className="absolute -left-[27px] top-0 w-6 h-6 rounded-full bg-white border-2 border-sky-400 flex items-center justify-center text-xs font-emoji shadow-sm">

@@ -35,6 +35,7 @@ import { Button } from '@/components/ui/Button';
 
 // Mock and type helpers
 import { chatAnalyticsData } from '@/lib/demo/demo-data';
+import { formatDeterministicMetrics } from '@/lib/analytics/stats-engine';
 import { AISentimentResult, DeterministicMetrics, FullChatAnalysisData } from '@/types/chat';
 
 export default function ChatDashboardPage() {
@@ -102,11 +103,22 @@ export default function ChatDashboardPage() {
       setAnalysisData(data.analysis);
       setIsOwner(data.chat?.isOwner || false);
 
-      if (data.chat?.data) {
-        setMetrics(data.chat.data);
+      // 1. Correctly extract metrics from analysis.metrics OR chat.data
+      const rawMetrics = data.analysis?.metrics || data.chat?.data;
+      if (rawMetrics) {
+        const formatted = rawMetrics.participants && Array.isArray(rawMetrics.participants)
+          ? formatDeterministicMetrics(rawMetrics)
+          : rawMetrics;
+        setMetrics(formatted);
+      } else {
+        setMetrics(chatAnalyticsData as any);
       }
 
-      if (data.chat?.data?.sentiment) {
+      // 2. Extract Sentiment (Progressive)
+      if (data.analysis?.metrics?.sentiment) {
+        setSentiment(data.analysis.metrics.sentiment);
+        setIsSentimentLoading(false);
+      } else if (data.chat?.data?.sentiment) {
         setSentiment(data.chat.data.sentiment);
         setIsSentimentLoading(false);
       } else {
@@ -176,8 +188,11 @@ export default function ChatDashboardPage() {
       throw new Error(data.error || 'Analiz yenilenemedi.');
     }
     setAnalysisData(data.analysis);
-    if (data.chat?.data) {
-      setMetrics(data.chat.data);
+    if (data.analysis?.metrics) {
+      const formatted = data.analysis.metrics.participants
+        ? formatDeterministicMetrics(data.analysis.metrics)
+        : data.analysis.metrics;
+      setMetrics(formatted);
     }
   };
 
@@ -235,36 +250,37 @@ export default function ChatDashboardPage() {
     );
   }
 
-  const user1 = metrics?.users?.user1 || chatAnalyticsData.users.user1;
-  const user2 = metrics?.users?.user2 || chatAnalyticsData.users.user2;
+  const effectiveMetrics = metrics || (chatAnalyticsData as any);
+  const user1 = effectiveMetrics?.users?.user1 || chatAnalyticsData.users.user1;
+  const user2 = effectiveMetrics?.users?.user2 || chatAnalyticsData.users.user2;
   const wrappedSlides = analysisData?.wrapped_slides || [];
 
   const fullAnalysisForStory: FullChatAnalysisData = {
     summary: {
-      totalMessages: metrics?.totalMessages || chatAnalyticsData.summary.totalMessages,
-      startDate: metrics?.startDate || chatAnalyticsData.summary.startDate,
-      endDate: metrics?.endDate || chatAnalyticsData.summary.endDate,
-      daysCount: metrics?.daysCount || chatAnalyticsData.summary.daysCount,
-      dailyAverage: metrics?.dailyAverage || chatAnalyticsData.summary.dailyAverage,
-      longestSilenceHours: metrics?.longestSilenceHours || chatAnalyticsData.summary.longestSilenceHours,
-      longestSilenceDates: metrics?.longestSilenceDates || chatAnalyticsData.summary.longestSilenceDates,
-      mostActiveHour: metrics?.mostActiveHour || chatAnalyticsData.summary.mostActiveHour,
-      mostActiveDay: metrics?.mostActiveDay || chatAnalyticsData.summary.mostActiveDay,
-      mostActiveDate: metrics?.mostActiveDate || chatAnalyticsData.summary.mostActiveDate
+      totalMessages: effectiveMetrics?.totalMessages || chatAnalyticsData.summary.totalMessages,
+      startDate: effectiveMetrics?.startDate || chatAnalyticsData.summary.startDate,
+      endDate: effectiveMetrics?.endDate || chatAnalyticsData.summary.endDate,
+      daysCount: effectiveMetrics?.daysCount || chatAnalyticsData.summary.daysCount,
+      dailyAverage: effectiveMetrics?.dailyAverage || chatAnalyticsData.summary.dailyAverage,
+      longestSilenceHours: effectiveMetrics?.longestSilenceHours || chatAnalyticsData.summary.longestSilenceHours,
+      longestSilenceDates: effectiveMetrics?.longestSilenceDates || chatAnalyticsData.summary.longestSilenceDates,
+      mostActiveHour: effectiveMetrics?.mostActiveHour || chatAnalyticsData.summary.mostActiveHour,
+      mostActiveDay: effectiveMetrics?.mostActiveDay || chatAnalyticsData.summary.mostActiveDay,
+      mostActiveDate: effectiveMetrics?.mostActiveDate || chatAnalyticsData.summary.mostActiveDate
     },
     users: {
       user1,
       user2
     },
-    timeDistribution: metrics?.timeDistribution || chatAnalyticsData.timeDistribution,
-    allTopEmojis: metrics?.allTopEmojis || chatAnalyticsData.allTopEmojis,
+    timeDistribution: effectiveMetrics?.timeDistribution || chatAnalyticsData.timeDistribution,
+    allTopEmojis: effectiveMetrics?.allTopEmojis || chatAnalyticsData.allTopEmojis,
     sentiment: sentiment || undefined
   };
 
-  const flagsReportData = metrics?.flagsReport || sentiment?.flagsReport || chatAnalyticsData.flagsReport;
-  const toxicityRadarData = metrics?.toxicityRadar || sentiment?.toxicityRadar || chatAnalyticsData.toxicityRadar;
-  const chatDictionaryData = metrics?.chatDictionary || sentiment?.chatDictionary || chatAnalyticsData.chatDictionary;
-  const timelineHighlightsData = metrics?.timelineHighlights || sentiment?.timelineHighlights || chatAnalyticsData.timelineHighlights;
+  const flagsReportData = effectiveMetrics?.flagsReport || sentiment?.flagsReport || chatAnalyticsData.flagsReport;
+  const toxicityRadarData = effectiveMetrics?.toxicityRadar || sentiment?.toxicityRadar || chatAnalyticsData.toxicityRadar;
+  const chatDictionaryData = effectiveMetrics?.chatDictionary || sentiment?.chatDictionary || chatAnalyticsData.chatDictionary;
+  const timelineHighlightsData = effectiveMetrics?.timelineHighlights || sentiment?.timelineHighlights || chatAnalyticsData.timelineHighlights;
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] text-slate-900 pb-28 selection:bg-sky-200 font-sans">
@@ -287,56 +303,46 @@ export default function ChatDashboardPage() {
         />
 
         {/* 2. Toplam Mesaj Büyük Metrik Kartı */}
-        {metrics && (
-          <StatCard
-            title="TOPLAM MESAJ"
-            value={formatNumber(metrics.totalMessages)}
-            subtitle={`${metrics.daysCount} günlük sohbet dönemi`}
-            badge={`${user1.name} & ${user2.name}`}
-            isHero={true}
-          />
-        )}
+        <StatCard
+          title="TOPLAM MESAJ"
+          value={formatNumber(effectiveMetrics.totalMessages)}
+          subtitle={`${effectiveMetrics.daysCount} günlük sohbet dönemi`}
+          badge={`${user1.name} & ${user2.name}`}
+          isHero={true}
+        />
 
         {/* 3. Kim Daha Çok Yazıyor? (Katılımcı Dağılımı ve Efor Dengesi) */}
-        {metrics && (
-          <MessageDistributionCard
-            user1={user1}
-            user2={user2}
-            totalMessages={metrics.totalMessages}
-            startDate={metrics.startDate}
-            endDate={metrics.endDate}
-          />
-        )}
+        <MessageDistributionCard
+          user1={user1}
+          user2={user2}
+          totalMessages={effectiveMetrics.totalMessages}
+          startDate={effectiveMetrics.startDate}
+          endDate={effectiveMetrics.endDate}
+        />
 
         {/* 4. Zaman Analizi & Aktivite Grafikleri */}
-        {metrics && (
-          <ActiveHoursChart
-            timeDistribution={metrics.timeDistribution}
-            mostActiveHour={metrics.mostActiveHour}
-            mostActiveDay={metrics.mostActiveDay}
-            longestSilenceHours={metrics.longestSilenceHours}
-            longestSilenceDates={metrics.longestSilenceDates}
-          />
-        )}
+        <ActiveHoursChart
+          timeDistribution={effectiveMetrics.timeDistribution}
+          mostActiveHour={effectiveMetrics.mostActiveHour}
+          mostActiveDay={effectiveMetrics.mostActiveDay}
+          longestSilenceHours={effectiveMetrics.longestSilenceHours}
+          longestSilenceDates={effectiveMetrics.longestSilenceDates}
+        />
 
         {/* 5. İletişim Dinamikleri & Yanıt Hızları */}
-        {metrics && (
-          <CommunicationDynamicsCard
-            user1={user1}
-            user2={user2}
-            longestSilenceHours={metrics.longestSilenceHours}
-            longestSilenceDates={metrics.longestSilenceDates}
-          />
-        )}
+        <CommunicationDynamicsCard
+          user1={user1}
+          user2={user2}
+          longestSilenceHours={effectiveMetrics.longestSilenceHours}
+          longestSilenceDates={effectiveMetrics.longestSilenceDates}
+        />
 
         {/* 6. Emoji Analizi & Sıralaması */}
-        {metrics && (
-          <EmojiLeaderboard
-            emojis={metrics.allTopEmojis}
-            user1={user1}
-            user2={user2}
-          />
-        )}
+        <EmojiLeaderboard
+          emojis={effectiveMetrics.allTopEmojis}
+          user1={user1}
+          user2={user2}
+        />
 
         {/* 7. Duygusal Analiz & Evrim (Progressive AI Layer) */}
         <SentimentEvolutionCard

@@ -191,7 +191,7 @@ export function generateSmartRuleBasedAnalysis(
       winner: calculatedSuperlatives.novelist.name,
       badge: '✍️',
       color: 'bg-white text-[#0A0A0A] border-[#E5E9F0]',
-      description: `Mesaj başına ortalama ${novelistWinner.avgWords} kelimeyle uzun soluklu yazan isim.`,
+      description: `Mesaj başına ortalama ${calculatedSuperlatives.novelist.avgWords} kelimeyle uzun soluklu yazan isim.`,
       quote: calculatedSuperlatives.novelist.sampleMessages[0] || '"Detaylı mesajlar..."',
       sampleQuotes: calculatedSuperlatives.novelist.sampleMessages,
       statLabel: 'Ort. Kelime/Mesaj',
