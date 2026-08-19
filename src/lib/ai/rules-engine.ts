@@ -41,24 +41,42 @@ export function generateRuleBasedSentiment(
 
   if (fallbackSamples.length > 0) {
     intenseMessages = fallbackSamples
-      .filter(s => s.text.length > 3)
+      .filter(s => s.text && s.text.length > 2)
       .slice(0, 5)
       .map((s, idx) => ({
         sender: s.sender,
-        time: s.time,
+        time: s.time || '12:00',
         text: s.text,
-        intensity: s.intensityScore || (100 - idx * 15),
+        intensity: s.intensityScore || (95 - idx * 10),
         emotion: emotionTypes[idx % emotionTypes.length]
       }));
   }
 
   if (intenseMessages.length === 0) {
-    intenseMessages = [
-      { sender: user1.name, time: '15:50', text: 'KORKUYORUM', intensity: 100, emotion: 'Korku' },
-      { sender: user2.name, time: '21:50', text: 'KSHWODHWODJWOEJWOD FATİHTERİM MUTLU', intensity: 100, emotion: 'Mutluluk' },
-      { sender: user2.name, time: '23:10', text: 'ANKET: Ben cok iyi biriyim dimi SEÇENEK: Eed (0 oy) SEÇENEK: Evet (0 oy)', intensity: 43, emotion: 'Memnuniyet' },
-      { sender: user1.name, time: '17:59', text: 'KEŞKE', intensity: 100, emotion: 'Pişmanlık' }
-    ];
+    const candidateQuotes: { sender: string; text: string }[] = [];
+    if (metrics.calculatedSuperlatives?.hypeTrain?.sampleMessages) {
+      metrics.calculatedSuperlatives.hypeTrain.sampleMessages.forEach(m => {
+        candidateQuotes.push({ sender: metrics.calculatedSuperlatives.hypeTrain.name, text: m });
+      });
+    }
+    if (metrics.calculatedSuperlatives?.novelist?.sampleMessages) {
+      metrics.calculatedSuperlatives.novelist.sampleMessages.forEach(m => {
+        candidateQuotes.push({ sender: metrics.calculatedSuperlatives.novelist.name, text: m });
+      });
+    }
+    if (metrics.calculatedSuperlatives?.starter?.sampleMessages) {
+      metrics.calculatedSuperlatives.starter.sampleMessages.forEach(m => {
+        candidateQuotes.push({ sender: metrics.calculatedSuperlatives.starter.name, text: m });
+      });
+    }
+
+    intenseMessages = candidateQuotes.slice(0, 4).map((q, idx) => ({
+      sender: q.sender,
+      time: '12:00',
+      text: q.text.replace(/^\[\d{2}:\d{2}\]\s*/, ''),
+      intensity: 90 - idx * 10,
+      emotion: emotionTypes[idx % emotionTypes.length]
+    }));
   }
 
   return {

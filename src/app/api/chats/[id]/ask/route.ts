@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { chatAnalyticsData, DEMO_CHAT_TITLE } from '@/lib/demo/demo-data';
+import { formatDeterministicMetrics } from '@/lib/analytics/stats-engine';
 
 const MAX_QUESTIONS_PER_CHAT = 5;
 
@@ -34,18 +35,33 @@ export async function POST(
       chatData = chatAnalyticsData;
       chatTitle = DEMO_CHAT_TITLE;
     } else {
-      const { data: chatRow, error } = await supabase
+      const supabase = createServerSupabaseClient();
+      const { data: chatRow } = await supabase
         .from('chats')
         .select('*')
         .eq('id', id)
         .single();
 
-      if (error || !chatRow) {
-        chatData = chatAnalyticsData;
-        chatTitle = DEMO_CHAT_TITLE;
+      const { data: analysisRow } = await supabase
+        .from('chat_analyses')
+        .select('*')
+        .eq('chat_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (chatRow) {
+        chatTitle = chatRow.title || 'WhatsApp Sohbeti';
+      }
+
+      if (analysisRow?.metrics) {
+        const raw = analysisRow.metrics;
+        const formatted = raw.participants && Array.isArray(raw.participants)
+          ? formatDeterministicMetrics(raw)
+          : raw;
+        chatData = formatted;
       } else {
-        chatTitle = chatRow.title;
-        chatData = chatRow.data;
+        chatData = chatAnalyticsData;
       }
     }
 
@@ -56,6 +72,7 @@ export async function POST(
     const dictionary = chatData?.chatDictionary?.sharedSlang || [];
     const topWords1 = chatData?.chatDictionary?.user1Words || [];
     const topWords2 = chatData?.chatDictionary?.user2Words || [];
+    const timeline = chatData?.timelineHighlights || [];
 
     // Extract concrete facts to answer accurately without generic vague fluff
     const qLower = question.toLowerCase();
@@ -63,29 +80,42 @@ export async function POST(
     const factsUsed: string[] = [];
 
     if (qLower.includes('ilk') || qLower.includes('nasıl başladı') || qLower.includes('başlangıç') || qLower.includes('nerede')) {
-      answer = `Sohbet ${summary.startDate || '9 Haziran 2025'} tarihinde başladı. ${u1.name} tarafından atılan ilk mesajla plan yapıldı ve Kadıköy / Moda Sahil buluşması organize edildi. Bu tarihten itibaren toplam ${summary.totalMessages?.toLocaleString('tr-TR')} mesaj paylaşıldı.`;
-      factsUsed.push(`Başlangıç Tarihi: ${summary.startDate}`, `İlk Buluşma Yeri: Kadıköy`);
+      const firstQuote = timeline.find((t: any) => t.id === 'tl_first')?.quote;
+      answer = `Sohbet ${summary.startDate || 'ilk günden beri'} tarihinde başladı. ${u1.name} ve ${u2.name} arasında başlayan bu diyalogda toplam ${summary.totalMessages?.toLocaleString('tr-TR')} mesaj paylaşıldı.`;
+      if (firstQuote) {
+        answer += ` İlk mesaj alıntısı: ${firstQuote}`;
+        factsUsed.push(`İlk Mesaj: ${firstQuote}`);
+      }
+      factsUsed.push(`Başlangıç: ${summary.startDate || 'Kayıt Başlangıcı'}`, `Toplam: ${summary.totalMessages} mesaj`);
     } else if (qLower.includes('tartış') || qLower.includes('kavga') || qLower.includes('trip') || qLower.includes('gerilim')) {
-      const drama = chatData?.toxicityRadar?.dramaLevel || 'Orta';
-      answer = `Sohbetin drama seviyesi "${drama}" olarak ölçüldü. Özellikle ${u2.name} sitemli anlarda "İyi peki" ve "Yok bişey" gibi ifadeleri tercih ederken, ${u1.name} "Sen bilirsin" kalıbını kullandı. Ayrıca ${summary.longestSilenceDates || 'Mayıs 2026'} döneminde tam ${summary.longestSilenceHours || 575} saatlik en uzun sessizlik dönemi yaşandı.`;
-      factsUsed.push(`En Uzun Sessizlik: ${summary.longestSilenceHours} saat`, `Pasif Kalıplar: 'Sen bilirsin', 'İyi peki'`);
-    } else if (qLower.includes('en çok kim') || qLower.includes('kim daha çok') || qLower.includes('oran')) {
-      answer = `Sohbette mesaj lideri %${u1.percentage} oran ve ${u1.messageCount?.toLocaleString('tr-TR')} mesajla ${u1.name} oldu. ${u2.name} ise %${u2.percentage} oran (${u2.messageCount?.toLocaleString('tr-TR')} mesaj) ile sohbete katıldı.`;
-      factsUsed.push(`${u1.name}: %${u1.percentage}`, `${u2.name}: %${u2.percentage}`);
+      const drama = chatData?.toxicityRadar?.dramaLevel || 'Düşük';
+      const patterns = chatData?.toxicityRadar?.detectedPatterns || [];
+      const patternText = patterns.length > 0
+        ? `Öne çıkan sitemli kalıp: "${patterns[0].phrase}" (${patterns[0].sender})`
+        : 'Sohbette yüksek gerilim kalıbı tespit edilmedi.';
+      answer = `Sohbetin drama ve sitem seviyesi "${drama}" olarak ölçüldü. ${patternText}. En uzun sessizlik dönemi ise ${summary.longestSilenceDates || 'kayıtlı aralıkta'} tam ${summary.longestSilenceHours || 0} saat sürdü.`;
+      factsUsed.push(`Drama Seviyesi: ${drama}`, `En Uzun Sessizlik: ${summary.longestSilenceHours} saat`);
+    } else if (qLower.includes('en çok kim') || qLower.includes('kim daha çok') || qLower.includes('oran') || qLower.includes('sayı')) {
+      answer = `Sohbette mesaj lideri %${u1.percentage} oran ve ${u1.messageCount?.toLocaleString('tr-TR')} mesajla ${u1.name} oldu. ${u2.name} ise %${u2.percentage} oran (${u2.messageCount?.toLocaleString('tr-TR')} mesaj) ile katılım sağladı.`;
+      factsUsed.push(`${u1.name}: %${u1.percentage} (${u1.messageCount} mesaj)`, `${u2.name}: %${u2.percentage} (${u2.messageCount} mesaj)`);
     } else if (qLower.includes('kelime') || qLower.includes('jargon') || qLower.includes('sözlük') || qLower.includes('replik')) {
       const w1 = topWords1.slice(0, 3).map((w: any) => `"${w.word}" (${w.count}x)`).join(', ');
       const w2 = topWords2.slice(0, 3).map((w: any) => `"${w.word}" (${w.count}x)`).join(', ');
-      answer = `${u1.name}'in en çok kullandığı kelimeler: ${w1 || '"aynen", "harbiden"'}. ${u2.name}'in dilinden düşürmediği kelimeler ise: ${w2 || '"koptum", "yaa"'}. Ortak en popüler terim ise "Kadıköy / Moda Sahil" oldu.`;
-      factsUsed.push(`İmza Kelimeler: ${w1} / ${w2}`);
+      const slangSample = dictionary.length > 0 ? `Ortak ifade kalıbı: "${dictionary[0].phrase}"` : '';
+      answer = `${u1.name}'in en çok kullandığı kelimeler: ${w1 || 'tespit ediliyor'}. ${u2.name}'in en sık kullandığı kelimeler: ${w2 || 'tespit ediliyor'}. ${slangSample}`;
+      factsUsed.push(`İmza Kelimeler: ${w1} | ${w2}`);
     } else if (qLower.includes('şiir') || qLower.includes('mani') || qLower.includes('özetle')) {
-      answer = `${chatTitle} sohbetine özel dörtlük:\n\n"Kadıköy sahilinde başlar ilk plan,\n${u1.name} yazar jet gibi durmadan zaman.\n${u2.name}'den 'koptum' gelir kahkahalarla,\nNice 30 bin mesaja, hep aynı aşkla!"`;
+      const topWord1 = topWords1[0]?.word || 'sohbet';
+      const topWord2 = topWords2[0]?.word || 'muhabbet';
+      answer = `${chatTitle} sohbetine özel dörtlük:\n\n"Mesajlar akar durur ekranda her an,\n${u1.name} '${topWord1}' der, geçip gider zaman.\n${u2.name} '${topWord2}' ile neşe saçar ortama,\nNice güzel anılara, nice bol kahkahaya!"`;
       factsUsed.push(`Sohbet Başlığı: ${chatTitle}`, `Toplam: ${summary.totalMessages} Mesaj`);
-    } else if (qLower.includes('komik') || qLower.includes('en komik') || qLower.includes('kahkaha')) {
-      const bestQuote = intense.find((m: any) => m.emotion === 'Mutluluk')?.text || 'FATİHTERİM MUTLU';
-      answer = `Sohbetin en komik anı 2 Ağustos 2025 tarihinde yaşandı. ${u2.name}'in açtığı 0 oylu anket ve paylaştığı "${bestQuote}" mesajı grupta rekor kahkaha patlamasına yol açtı!`;
-      factsUsed.push(`Rekor Kahkaha Anı: 2 Ağustos 2025`, `Alıntı: "${bestQuote}"`);
+    } else if (qLower.includes('komik') || qLower.includes('en komik') || qLower.includes('kahkaha') || qLower.includes('anı')) {
+      const bestQuote = intense[0]?.text || chatData?.calculatedSuperlatives?.hypeTrain?.sampleMessages?.[0] || 'Harika anlar';
+      const peakDay = summary.mostActiveDate || 'Yoğun gün';
+      answer = `Sohbetin en hareketli ve neşeli dönemi ${peakDay} tarihinde yaşandı. Öne çıkan yoğun anlardan bir alıntı: "${bestQuote.replace(/^\[\d{2}:\d{2}\]\s*/, '')}"`;
+      factsUsed.push(`Aktivite Zirvesi: ${peakDay}`, `Alıntı: "${bestQuote}"`);
     } else {
-      answer = `${chatTitle} verilerine göre: Toplam ${summary.totalMessages?.toLocaleString('tr-TR')} mesaj içinde ${u1.name} (%${u1.percentage}) ve ${u2.name} (%${u2.percentage}) en yoğun olarak saat ${summary.mostActiveHour || '22:00'} ve ${summary.mostActiveDay || 'Pazar'} günleri iletişim kurdu.`;
+      answer = `${chatTitle} sohbet verilerine göre: Toplam ${summary.totalMessages?.toLocaleString('tr-TR')} mesaj içinde ${u1.name} (%${u1.percentage}) ve ${u2.name} (%${u2.percentage}) en yoğun olarak saat ${summary.mostActiveHour || 'belirlenen saatler'} ve ${summary.mostActiveDay || 'belirlenen gün'} günleri mesajlaştı.`;
       factsUsed.push(`Aktif Saat: ${summary.mostActiveHour}`, `Aktif Gün: ${summary.mostActiveDay}`);
     }
 

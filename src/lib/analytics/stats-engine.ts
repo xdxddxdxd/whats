@@ -1,152 +1,63 @@
 import { ParsedMessage } from '../parser/whatsapp-parser';
 import {
+  ChatMetrics,
   DeterministicMetrics,
-  UserStats,
-  FullChatAnalysisData,
-  TimelineHighlight,
-  ChatDictionaryData,
+  EmojiStat,
+  HourlyDistribution,
+  DailyDistribution,
+  MonthlyTrend,
+  ParticipantStat,
+  SingleWordStats,
   FlagsReportData,
   ToxicityRadarData,
-  PassiveAggressivePattern
+  PassiveAggressivePattern,
+  ChatDictionaryData,
+  TimelineHighlight
 } from '@/types/chat';
 
-export interface ParticipantStat {
-  name: string;
-  messageCount: number;
-  messagePercentage: number;
-  wordCount: number;
-  avgWordsPerMessage: number;
-  characterCount: number;
-  avgCharLength: number;
-  mediaCount: number;
-  emojiCount: number;
-  topEmojis: { emoji: string; count: number }[];
-  nightMessages: number;
-  earlyMessages: number;
-  nightPercentage: number;
-  avgResponseTimeMinutes: number | null;
-  monologues: number;
-  conversationStarters: number;
-  startedPercentage: number;
-  singleWordCount: number;
-}
+export type { ChatMetrics };
 
-export interface HourlyDistribution {
-  hour: number;
-  label: string;
-  count: number;
-  percentage: number;
-}
-
-export interface DailyDistribution {
-  day: number;
-  dayName: string;
-  count: number;
-  percentage: number;
-}
-
-export interface EmojiStat {
-  emoji: string;
-  count: number;
-  percentage: number;
-}
-
-export interface SuperlativeItemData {
-  name: string;
-  count?: number;
-  avgMins?: number;
-  avgWords?: number;
-  exclamationCount?: number;
-  desc: string;
-  sampleMessages: string[];
-}
-
-export interface ChatMetrics {
-  totalMessages: number;
-  totalWords: number;
-  totalCharacters: number;
-  totalMedia: number;
-  totalEmojis: number;
-  daysSpan: number;
-  avgMessagesPerDay: number;
-  dateRange: {
-    start: string;
-    end: string;
-  };
-  participants: ParticipantStat[];
-  hourlyDistribution: HourlyDistribution[];
-  dailyDistribution: DailyDistribution[];
-  topEmojis: EmojiStat[];
-  peakHour: {
-    hour: number;
-    label: string;
-    count: number;
-  };
-  peakDay: {
-    dayName: string;
-    count: number;
-  };
-  busiestDate: {
-    date: string;
-    count: number;
-  };
-  longestSilence: {
-    hours: number;
-    startDate: string;
-    endDate: string;
-    formatted: string;
-  };
-  calculatedSuperlatives: {
-    nightOwl: SuperlativeItemData;
-    earlyBird: SuperlativeItemData;
-    ghost: SuperlativeItemData;
-    speedster: SuperlativeItemData;
-    impatient: SuperlativeItemData;
-    starter: SuperlativeItemData;
-    emojiMonarch: SuperlativeItemData;
-    novelist: SuperlativeItemData;
-    hypeTrain: SuperlativeItemData;
-  };
-  timelineHighlights: TimelineHighlight[];
-  chatDictionary: ChatDictionaryData;
-  flagsReport: FlagsReportData;
-  toxicityRadar: ToxicityRadarData;
-}
-
-const EMOJI_REGEX = new RegExp('(?:\\p{Extended_Pictographic}|\\p{Emoji_Presentation}|\\p{Emoji}\\uFE0F)(?:\\u200D(?:\\p{Extended_Pictographic}|\\p{Emoji_Presentation}|\\p{Emoji}\\uFE0F))*', 'gu');
+const EMOJI_REGEX = /(?:[\u2700-\u27bf]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff]|[\u0023-\u0039]\ufe0f?\u20e3|\u3299|\u3297|\u303d|\u3030|\u24c2|\ud83c[\udd70-\udd71]|\ud83c[\udd7e-\udd7f]|\ud83c\udd8e|\ud83c[\udd91-\udd9a]|\ud83c[\udde6-\uddff]|[\ud83d\ud83e][\ud000-\udfff]|[\u200d\ufe0f])/g;
 
 const TURKISH_DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 const TURKISH_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-const FULL_TURKISH_MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
-const STOP_WORDS = new Set([
-  've', 'veya', 'ile', 'bir', 'bu', 'şu', 'o', 'de', 'da', 'mi', 'mı', 'mu', 'mü',
-  'için', 'gibi', 'kadar', 'sonra', 'önce', 'daha', 'çok', 'en', 'ama', 'fakat',
-  'lakin', 'ancak', 'ben', 'sen', 'biz', 'siz', 'onlar', 'bana', 'sana', 'bize',
-  'size', 'beni', 'seni', 'bizi', 'sizi', 'benim', 'senin', 'bizim', 'sizin',
-  'var', 'yok', 'diye', 'ise', 'ki', 'şey', 'her', 'hiç', 'tüm', 'bütün',
-  'olan', 'olarak', 'yani', 'ne', 'nasıl', 'neden', 'niye', 'nerede', 'nereden',
-  'kim', 'hangi', 'zaten', 'artık', 'bile', 'çünkü', 'şimdi', 'böyle', 'şöyle',
-  'öyle', 'aynı', 'kendi', 'kendine', 'tamam', 'peki', 'evet', 'hayır', 'ya', 'ha', 'hee'
+// Common single word dismissive / short triggers
+const SINGLE_WORD_TRIGGERS = new Set([
+  'tm', 'ok', 'peki', 'aynen', 'tmm', 'oke', 'tamam', 'hıhı', 'he', 'hı', 'yok', 'yoo',
+  'bb', 'hyr', 'evet', 'yep', 'nope', 'tmmdır', 'olr', 'olur', 'bilmem', 'bosver', 'boşver'
 ]);
 
+// Passive-aggressive patterns
 const PASSIVE_AGGRESSIVE_REGEXES = [
-  { pattern: /\b(?:sen bilirsin|sen nasil istersen|nasil istersen)\b/i, tag: 'Görünürde Teslimiyet' },
-  { pattern: /\b(?:iyi peki|peki oyle olsun|oyle olsun|iyi oyle olsun)\b/i, tag: 'Soğuk Onay' },
-  { pattern: /\b(?:yok bi(?:r)?sey|bisey yok|yok bisey|sorun yok|sikinti yok)\b/i, tag: 'Üstü Kapalı Sitem' },
-  { pattern: /\b(?:anladim|anlasildi|tamam anladim)\b/i, tag: 'Kısa Kesme' },
-  { pattern: /\b(?:fark etmez|bana fark etmez|onemli degil|onemi yok)\b/i, tag: 'İlgisizlik Maskesi' },
-  { pattern: /\b(?:neyse|neyse bosver|bosver artik|konusmayalim)\b/i, tag: 'Konuyu Kapatma' },
-  { pattern: /\b(?:sen oyle diyorsan|oyle olsun bakalim|sen haklisin)\b/i, tag: 'İğneleyici Kabulleniş' },
-  { pattern: /\b(?:zahmet olmasin|ben karismiyorum|beni ilgilendirmez)\b/i, tag: 'Mesafe Koyma' },
+  { pattern: /\b(sen bilirsin|sen nas[ıi]l istersen|keyfin bilir)\b/i, tag: 'Görünürde Teslimiyet' },
+  { pattern: /\b(iyi peki|peki iyi|iyi tamam|peki peki)\b/i, tag: 'Soğuk Onay' },
+  { pattern: /\b(yok bi[r]?\s*[\u015f\u0073]ey|bir \u015fey yok|yok bir \u015fey)\b/i, tag: 'Üstü Kapalı Sitem' },
+  { pattern: /\b(anlad[ıi]m ben|anlad[ıi]m|fark etmez|farketmez)\b/i, tag: 'Duygusal Mesafe' },
+  { pattern: /\b(benlik de[ğg]il|sen devam et|sen tak[ıi]l|bensiz)\b/i, tag: 'Dışlanma Sitemi' },
+  { pattern: /\b(neyse|neyse bo[\u015f]ver|bo[\u015f]ver)\b/i, tag: 'Konu Kapatma / Küslük' }
 ];
 
-const SINGLE_WORD_TRIGGERS = new Set(['tm', 'ok', 'oke', 'tmm', 'peki', 'hıhı', 'hihi', 'aynen', 'he', 'hee', 'yok', 'tamam', 'hıım']);
+// Comprehensive Turkish Stopwords to accurately extract unique user vocabulary
+const STOP_WORDS = new Set([
+  've', 'bir', 'bu', 'da', 'de', 'icin', 'için', 'ne', 'o', 'mi', 'mı', 'mu', 'mü',
+  'ben', 'sen', 'biz', 'siz', 'onlar', 'cok', 'çok', 'daha', 'gibi', 'kadar',
+  'ile', 'ama', 'fakat', 'lakin', 'ancak', 'veya', 'ya', 'ise', 'her', 'sey', 'şey',
+  'var', 'yok', 'en', 'bana', 'sana', 'ona', 'bize', 'size', 'beni', 'seni', 'onu',
+  'benim', 'senin', 'onun', 'bizim', 'sizin', 'bunu', 'sunu', 'şunu', 'böyle', 'şöyle',
+  'su', 'şu', 'diye', 'zaten', 'bile', 'artık', 'yani', 'bi', 'biraz', 'bence', 'sence',
+  'şu', 'şunlar', 'bunlar', 'kendi', 'kendine', 'nasıl', 'neden', 'niye', 'hangi',
+  'şimdi', 'sonra', 'önce', 'öyle', 'şöyle', 'böyle', 'işte', 'tabi', 'tabii', 'yahu',
+  'tam', 'hala', 'hâlâ', 'zaman', 'şeyler', 'olan', 'olarak', 'oldu', 'olur', 'olsun',
+  'yine', 'hep', 'hiç', 'hic', 'biri', 'biriyle', 'tüm', 'tum', 'aynı', 'ayni', 'eder',
+  'etti', 'eden', 'baska', 'başka', 'hemen', 'şuan', 'şuanda', 'suan', 'demek', 'ki',
+  'mesaj', 'görsel', 'ses', 'medya', 'dahil', 'edilmedi', 'omitted', 'audio', 'image', 'video'
+]);
 
-function formatTurkishDate(date: Date, includeYear = true): string {
-  const day = date.getDate();
-  const month = FULL_TURKISH_MONTHS[date.getMonth()];
-  const year = date.getFullYear();
+function formatTurkishDate(d: Date, includeYear = true): string {
+  const day = d.getDate();
+  const month = TURKISH_MONTHS[d.getMonth()];
+  const year = d.getFullYear();
   return includeYear ? `${day} ${month} ${year}` : `${day} ${month}`;
 }
 
@@ -178,6 +89,7 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
 
   const wordFrequencyMap: Record<string, Record<string, number>> = {};
   const singleWordRepliesMap: Record<string, Record<string, number>> = {};
+  const phraseFrequencyMap: Record<string, number> = {};
   const detectedPassiveAggressive: PassiveAggressivePattern[] = [];
 
   const participantMap: Record<
@@ -207,6 +119,8 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
   let currentStreak = 0;
   let currentStreakMessages: string[] = [];
 
+  let silenceBreakSnippet = '';
+  let silenceBreakSender = '';
   let maxSilenceMs = 0;
   let maxSilenceStart: Date = messages[0].timestamp;
   let maxSilenceEnd: Date = messages[0].timestamp;
@@ -295,6 +209,25 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
       }
     }
 
+    // Dynamic n-gram multi-word phrase frequency for real shared vocabulary
+    for (let j = 0; j < cleanTokens.length - 1; j++) {
+      const w1 = cleanTokens[j];
+      const w2 = cleanTokens[j + 1];
+      if (!STOP_WORDS.has(w1) || !STOP_WORDS.has(w2)) {
+        const twoGram = `${w1} ${w2}`;
+        if (twoGram.length >= 5) {
+          phraseFrequencyMap[twoGram] = (phraseFrequencyMap[twoGram] || 0) + 1;
+        }
+      }
+      if (j < cleanTokens.length - 2) {
+        const w3 = cleanTokens[j + 2];
+        const threeGram = `${w1} ${w2} ${w3}`;
+        if (threeGram.length >= 8) {
+          phraseFrequencyMap[threeGram] = (phraseFrequencyMap[threeGram] || 0) + 1;
+        }
+      }
+    }
+
     const timeStr = `${String(msgDate.getHours()).padStart(2, '0')}:${String(msgDate.getMinutes()).padStart(2, '0')}`;
     const cleanSnippet = text.length > 100 ? text.slice(0, 100) + '...' : text;
     const formattedSnippet = `[${timeStr}] ${cleanSnippet || '<Medya/Görsel>'}`;
@@ -357,6 +290,8 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
         maxSilenceMs = diffMs;
         maxSilenceStart = lastMessageTime;
         maxSilenceEnd = msgDate;
+        silenceBreakSnippet = formattedSnippet;
+        silenceBreakSender = sender;
       }
 
       if (lastMessageSender === sender) {
@@ -450,6 +385,12 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
     percentage: Math.round((count / totalMessages) * 1000) / 10
   }));
 
+  const monthlyTrends: MonthlyTrend[] = Object.entries(monthCounts).map(([month, count]) => ({
+    month,
+    count,
+    percentage: Math.round((count / totalMessages) * 1000) / 10
+  }));
+
   const topEmojis: EmojiStat[] = Object.entries(globalEmojiCounts)
     .map(([emoji, count]) => ({
       emoji,
@@ -532,24 +473,27 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
       sender: u2Name
     }));
 
+  const sharedPhrasesEntries = Object.entries(phraseFrequencyMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([p, count]) => ({
+      phrase: p.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      count,
+      description: 'Sohbette sıkça tekrarlanan ortak kalıp ve ifade'
+    }));
+
   const chatDictionary: ChatDictionaryData = {
     user1Words: u1WordEntries.length > 0 ? u1WordEntries : [
-      { word: 'aynen', count: 48, meaning: 'Onay ve geçiştirme jargonu', sender: u1Name },
-      { word: 'kanka', count: 35, meaning: 'Samimiyet ifadesi', sender: u1Name },
-      { word: 'harbiden', count: 29, meaning: 'Vurgu ve şaşkınlık', sender: u1Name },
-      { word: 'hallederiz', count: 22, meaning: 'Özgüven göstergesi', sender: u1Name }
+      { word: Object.keys(wordFrequencyMap[u1Name] || {})[0] || 'mesaj', count: 1, meaning: `${u1Name}'in sohbette kullandığı ifade`, sender: u1Name }
     ],
     user2Words: u2WordEntries.length > 0 ? u2WordEntries : [
-      { word: 'koptum', count: 52, meaning: 'Kahkaha ve eğlence ifadesi', sender: u2Name },
-      { word: 'yaa', count: 41, meaning: 'Duygusal tepki jargonu', sender: u2Name },
-      { word: 'aşko', count: 33, meaning: 'Grup içi sevgi hitabı', sender: u2Name },
-      { word: 'şaka', count: 24, meaning: 'Mizahi geri adım', sender: u2Name }
+      { word: Object.keys(wordFrequencyMap[u2Name] || {})[0] || 'mesaj', count: 1, meaning: `${u2Name}'in sohbette kullandığı ifade`, sender: u2Name }
     ],
-    sharedSlang: [
-      { phrase: 'Gıybet Kazanı', count: 18, description: 'Önemli dedikodular başladığında açılan oturum' },
-      { phrase: 'Jet Çıkış', count: 14, description: 'Mekana ilk varan kişinin zafer anonsu' },
-      { phrase: 'Buz Devri', count: 9, description: 'Grupta kimseden ses çıkmayan sessizlik anları' }
-    ]
+    sharedSlang: sharedPhrasesEntries.length > 0 ? sharedPhrasesEntries : (
+      u1WordEntries.length > 0 && u2WordEntries.length > 0 ? [
+        { phrase: `${u1WordEntries[0].word} & ${u2WordEntries[0].word}`, count: u1WordEntries[0].count + u2WordEntries[0].count, description: 'Sohbette öne çıkan anahtar kelimeler' }
+      ] : []
+    )
   };
 
   const u1Single = participantStats[0]?.singleWordCount || 0;
@@ -565,6 +509,19 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
       });
   });
 
+  const u1SingleWordExample = Object.keys(singleWordRepliesMap[u1Name] || {})[0]
+    ? `"${Object.keys(singleWordRepliesMap[u1Name])[0]}"`
+    : (u1Single > 0 ? '"tm"' : undefined);
+
+  const u1NightExample = nightMessagesMap[u1Name]?.[0] || generalMessagesMap[u1Name]?.[0] || undefined;
+  const u1StarterExample = startersMessagesMap[u1Name]?.[0] || generalMessagesMap[u1Name]?.[0] || undefined;
+  const u1EmojiExample = emojiMessagesMap[u1Name]?.[0] || hypeMessagesMap[u1Name]?.[0] || undefined;
+
+  const u2GeneralExample = generalMessagesMap[u2Name]?.[0] || undefined;
+  const u2EmojiExample = emojiMessagesMap[u2Name]?.[0] || undefined;
+  const u2LongExample = longestMessagesMap[u2Name]?.[0]?.text || generalMessagesMap[u2Name]?.[0] || undefined;
+  const u2HypeExample = hypeMessagesMap[u2Name]?.[0] || generalMessagesMap[u2Name]?.[0] || undefined;
+
   const flagsReport: FlagsReportData = {
     user1Flags: [
       {
@@ -572,8 +529,8 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
         type: 'red',
         badge: '🚩',
         title: 'Tek Kelimelik Cevap Alışkanlığı',
-        desc: `Sohbette tam ${u1Single} kez tek kelimelik ("tm", "ok", "aynen") kısa cevap verdi.`,
-        exampleQuote: '"tm"',
+        desc: `Sohbette tam ${u1Single} kez tek kelimelik kısa cevap verdi.`,
+        exampleQuote: u1SingleWordExample,
         severity: u1Single > 20 ? 'high' : 'medium'
       },
       {
@@ -581,8 +538,8 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
         type: 'red',
         badge: '🚩',
         title: 'Gece Mesajı Monopolü',
-        desc: `Gece 00:00 - 05:00 saatleri arasında (${nightOwlWinner.nightMessages} mesaj) ansızın felsefe açma potansiyeli.`,
-        exampleQuote: '"Uyumayan var mı?"',
+        desc: `Gece 00:00 - 05:00 saatleri arasında (${nightOwlWinner.nightMessages} mesaj) ansızın sohbet açma potansiyeli.`,
+        exampleQuote: u1NightExample,
         severity: 'low'
       },
       {
@@ -590,8 +547,8 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
         type: 'green',
         badge: '🟢',
         title: 'Sohbet Başlatma Cesareti',
-        desc: `Sessizlik uzadığında %${participantStats[0]?.startedPercentage || 58} oranla ilk adımı atan taraf.`,
-        exampleQuote: '"Günaydın herkese!"',
+        desc: `Sessizlik uzadığında %${participantStats[0]?.startedPercentage || 50} oranla ilk adımı atan taraf.`,
+        exampleQuote: u1StarterExample,
         severity: 'high'
       },
       {
@@ -600,7 +557,7 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
         badge: '🟢',
         title: 'Hızlı Enerji & Reaksiyon',
         desc: `Gruptaki kahkaha ve heyecan anlarını coşkuyla destekliyor (${participantStats[0]?.emojiCount || 0} emoji).`,
-        exampleQuote: '🔥 ✨ 😎',
+        exampleQuote: u1EmojiExample,
         severity: 'medium'
       }
     ],
@@ -610,8 +567,8 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
         type: 'red',
         badge: '🚩',
         title: 'Görüldü & Geç Yanıt Riski',
-        desc: `Ortalama yanıt süresi ${participantStats[1]?.avgResponseTimeMinutes || 42} dakika ile ara sıra bekletiyor.`,
-        exampleQuote: '"Yeni gördüm kusura bakma"',
+        desc: `Ortalama yanıt süresi ${participantStats[1]?.avgResponseTimeMinutes || 15} dakika.`,
+        exampleQuote: u2GeneralExample,
         severity: (participantStats[1]?.avgResponseTimeMinutes || 0) > 30 ? 'high' : 'medium'
       },
       {
@@ -619,8 +576,8 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
         type: 'red',
         badge: '🚩',
         title: 'Seçici Emoji Kullanımı',
-        desc: `Sitem içeren veya dramatik emojileri (🥺, 😣) en yoğun tercih eden isim.`,
-        exampleQuote: '🥺 😣',
+        desc: `Sitem içeren veya dramatik emojileri en yoğun tercih eden isim.`,
+        exampleQuote: u2EmojiExample,
         severity: 'low'
       },
       {
@@ -628,8 +585,8 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
         type: 'green',
         badge: '🟢',
         title: 'Detaylı & Açıklayıcı Anlatım',
-        desc: `Mesaj başına ${participantStats[1]?.avgCharLength || 14} karakter ile duygularını özenle ifade ediyor.`,
-        exampleQuote: '"Evet ya çok iyi geldi mutlaka yapalım!"',
+        desc: `Mesaj başına ${participantStats[1]?.avgCharLength || 15} karakter ile anlatımını paylaşıyor.`,
+        exampleQuote: u2LongExample,
         severity: 'high'
       },
       {
@@ -637,20 +594,15 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
         type: 'green',
         badge: '🟢',
         title: 'Grup Neşesi & Espri Lokomotifi',
-        desc: `En komik repliklerle gerginliği dağıtıp ortama pozitif enerji saçıyor.`,
-        exampleQuote: '"Koptum yaaa ahaha"',
+        desc: `Repliklerle gerginliği dağıtıp ortama pozitif enerji saçıyor.`,
+        exampleQuote: u2HypeExample,
         severity: 'medium'
       }
     ],
     singleWordStats: {
       user1Count: u1Single,
       user2Count: u2Single,
-      topWords: topSingleWords.length > 0 ? topSingleWords : [
-        { word: 'tm', count: 18, sender: u1Name },
-        { word: 'aynen', count: 14, sender: u1Name },
-        { word: 'ok', count: 11, sender: u2Name },
-        { word: 'peki', count: 9, sender: u2Name }
-      ]
+      topWords: topSingleWords
     }
   };
 
@@ -658,17 +610,30 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
   const u2Passive = participantMap[u2Name]?.passiveCount || 0;
   const totalPassive = u1Passive + u2Passive;
 
+  const realDetectedOrFallbackPatterns = detectedPassiveAggressive.length > 0
+    ? detectedPassiveAggressive
+    : (
+      generalMessagesMap[u1Name]?.[0] || generalMessagesMap[u2Name]?.[0]
+        ? [
+            {
+              phrase: (generalMessagesMap[u1Name]?.[0] || generalMessagesMap[u2Name]?.[0] || '').replace(/^\[\d{2}:\d{2}\]\s*/, ''),
+              sender: u1Name,
+              time: '12:00',
+              context: 'Düşük gerilim / Doğal sohbet akışı',
+              intensity: 45,
+              tag: 'Doğal Akış'
+            }
+          ]
+        : []
+    );
+
   const toxicityRadar: ToxicityRadarData = {
     dramaLevel: totalPassive > 15 ? 'Yüksek (Trip Dolu)' : totalPassive > 5 ? 'Orta (Ara Sıra Gerilim)' : 'Düşük (Huzurlu)',
     tripScore: {
-      user1: Math.max(15, u1Passive * 10 + Math.round(u1Single * 1.5)),
-      user2: Math.max(15, u2Passive * 10 + Math.round(u2Single * 1.5))
+      user1: Math.max(10, u1Passive * 10 + Math.round(u1Single * 1.5)),
+      user2: Math.max(10, u2Passive * 10 + Math.round(u2Single * 1.5))
     },
-    detectedPatterns: detectedPassiveAggressive.length > 0 ? detectedPassiveAggressive : [
-      { phrase: 'Sen bilirsin', sender: u1Name, time: '17:59', context: 'Karar anında geri çekilme', intensity: 88, tag: 'Görünürde Teslimiyet' },
-      { phrase: 'İyi peki', sender: u2Name, time: '21:50', context: 'Uzun tartışma sonrası soğuk bitiriş', intensity: 92, tag: 'Soğuk Onay' },
-      { phrase: 'Yok bişey', sender: u2Name, time: '23:10', context: 'Soruya üstü kapalı sitemli cevap', intensity: 85, tag: 'Üstü Kapalı Sitem' }
-    ],
+    detectedPatterns: realDetectedOrFallbackPatterns,
     coldPeriods: [
       {
         dates: `${longestSilenceStartStr} – ${longestSilenceEndStr}`,
@@ -678,6 +643,14 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
     ]
   };
 
+  const firstMsgSnippet = messages[0]?.content ? `"${messages[0].content.slice(0, 60)}"` : '';
+  const busiestMsgMatch = messages.find(m => new Date(m.timestamp).toISOString().startsWith(busiestDateStr));
+  const busiestMsgSnippet = busiestMsgMatch?.content
+    ? `"${busiestMsgMatch.content.slice(0, 60)}"`
+    : (messages[Math.floor(messages.length / 2)]?.content ? `"${messages[Math.floor(messages.length / 2)].content.slice(0, 60)}"` : '');
+  const silenceMsgSnippet = silenceBreakSnippet || startersMessagesMap[starterWinner.name]?.[0] || '';
+  const nightMsgSnippet = nightMessagesMap[nightOwlWinner.name]?.[0] || generalMessagesMap[nightOwlWinner.name]?.[0] || '';
+
   const timelineHighlights: TimelineHighlight[] = [
     {
       id: 'tl_first',
@@ -686,17 +659,17 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
       emoji: '🚀',
       description: `${u1Name} tarafından gönderilen ilk mesajla bu büyük sohbet serüveni başladı.`,
       messageCount: dateCounts[Object.keys(dateCounts)[0]] || 15,
-      quote: messages[0]?.content ? `"${messages[0].content.slice(0, 60)}"` : '"Günaydın!!"',
+      quote: firstMsgSnippet,
       sender: messages[0]?.sender || u1Name
     },
     {
       id: 'tl_busiest',
-      date: busiestDateStr ? formatTurkishDate(new Date(busiestDateStr)) : '31 Mayıs 2026',
+      date: busiestDateStr ? formatTurkishDate(new Date(busiestDateStr)) : 'Yoğun Gün',
       title: 'Rekor Gün (Klavyelerin Yandığı An)',
       emoji: '🔥',
-      description: `Tek bir günde tam ${maxDateCount.toLocaleString('tr-TR')} mesaj paylaşılarak tüm zamanların aktivite rekoru kırıldı.`,
-      messageCount: maxDateCount || 340,
-      quote: '"Bu akşam harikaydı ya!"',
+      description: `Tek bir günde tam ${maxDateCount.toLocaleString('tr-TR')} mesaj paylaşılarak aktivite rekoru kırıldı.`,
+      messageCount: maxDateCount || 100,
+      quote: busiestMsgSnippet,
       sender: u2Name
     },
     {
@@ -704,9 +677,9 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
       date: longestSilenceStartStr,
       title: 'Büyük Sessizlik & Dönüş',
       emoji: '❄️',
-      description: `Tam ${longestSilenceHours} saat süren en uzun sessizlikten sonra ${starterWinner.name} tekrar kapıyı araladı.`,
+      description: `Tam ${longestSilenceHours} saat süren en uzun sessizlikten sonra ${starterWinner.name} tekrar sohbeti başlattı.`,
       messageCount: longestSilenceHours,
-      quote: '"Selamlar herkese, ne var ne yok?"',
+      quote: silenceMsgSnippet,
       sender: starterWinner.name
     },
     {
@@ -714,9 +687,9 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
       date: formatTurkishDate(lastDate),
       title: 'Gece Kuşları Zirvesi',
       emoji: '🌙',
-      description: `Gece 00:00 - 05:00 arasında ${nightOwlWinner.name} liderliğinde en derin muhabbetler döndü.`,
-      messageCount: nightOwlWinner.nightMessages || 85,
-      quote: '"Kafama bir şey takıldı bakın şimdi..."',
+      description: `Gece 00:00 - 05:00 arasında ${nightOwlWinner.name} liderliğinde gece muhabbeti yaşandı.`,
+      messageCount: nightOwlWinner.nightMessages || 1,
+      quote: nightMsgSnippet,
       sender: nightOwlWinner.name
     }
   ];
@@ -729,13 +702,10 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
     totalEmojis,
     daysSpan: diffDays,
     avgMessagesPerDay,
-    dateRange: {
-      start: formatTurkishDate(firstDate),
-      end: formatTurkishDate(lastDate)
-    },
     participants: participantStats,
     hourlyDistribution,
     dailyDistribution,
+    monthlyTrends,
     topEmojis,
     peakHour: {
       hour: peakHourIdx,
@@ -802,23 +772,20 @@ export function calculateChatMetrics(messages: ParsedMessage[]): ChatMetrics {
       novelist: {
         name: novelistWinner.name,
         avgWords: novelistWinner.avgWordsPerMessage,
-        desc: `Mesaj başına ortalama ${novelistWinner.avgWordsPerMessage} kelimeyle adeta mini makaleler yazdı.`,
-        sampleMessages: (longestMessagesMap[novelistWinner.name] || [])
-          .sort((a, b) => b.length - a.length)
-          .slice(0, 8)
-          .map(m => m.text)
+        desc: `Mesaj başına ortalama ${novelistWinner.avgWordsPerMessage} kelimeyle detaylı yazan isim.`,
+        sampleMessages: getCleanSampleMessages(longestMessagesMap[novelistWinner.name]?.map(m => m.text), novelistWinner.name)
       },
       hypeTrain: {
         name: hypeTrainWinner.name,
         exclamationCount: hypeTrainWinner.exclamationCount,
-        desc: `Gruptaki heyecanı ve kahkahayı en çok körükleyen enerji kaynağı.`,
+        desc: `Kahkaha ve heyecan dolu mesajlarla enerjiyi zirveye taşıdı.`,
         sampleMessages: getCleanSampleMessages(hypeMessagesMap[hypeTrainWinner.name], hypeTrainWinner.name)
       }
     },
-    timelineHighlights,
-    chatDictionary,
     flagsReport,
-    toxicityRadar
+    toxicityRadar,
+    chatDictionary,
+    timelineHighlights
   };
 }
 
@@ -827,11 +794,19 @@ export function formatDeterministicMetrics(metrics: ChatMetrics): DeterministicM
     name: 'Kullanıcı 1',
     messageCount: 0,
     messagePercentage: 50,
-    avgCharLength: 12,
-    avgResponseTimeMinutes: 30,
-    startedPercentage: 50,
+    characterCount: 0,
+    avgCharLength: 0,
+    wordCount: 0,
+    avgWordsPerMessage: 0,
     emojiCount: 0,
     topEmojis: [],
+    nightMessages: 0,
+    earlyMessages: 0,
+    nightPercentage: 0,
+    avgResponseTimeMinutes: 1,
+    monologues: 0,
+    conversationStarters: 0,
+    startedPercentage: 50,
     singleWordCount: 0
   };
 
@@ -839,63 +814,66 @@ export function formatDeterministicMetrics(metrics: ChatMetrics): DeterministicM
     name: 'Kullanıcı 2',
     messageCount: 0,
     messagePercentage: 50,
-    avgCharLength: 14,
-    avgResponseTimeMinutes: 35,
-    startedPercentage: 50,
+    characterCount: 0,
+    avgCharLength: 0,
+    wordCount: 0,
+    avgWordsPerMessage: 0,
     emojiCount: 0,
     topEmojis: [],
+    nightMessages: 0,
+    earlyMessages: 0,
+    nightPercentage: 0,
+    avgResponseTimeMinutes: 1,
+    monologues: 0,
+    conversationStarters: 0,
+    startedPercentage: 50,
     singleWordCount: 0
   };
 
-  const users: Record<string, UserStats> = {
-    user1: {
-      name: user1.name,
-      color: '#38BDF8',
-      messageCount: user1.messageCount,
-      percentage: user1.messagePercentage,
-      avgCharLength: user1.avgCharLength || 12,
-      avgResponseTimeMin: user1.avgResponseTimeMinutes || 30,
-      startedPercentage: user1.startedPercentage || 50,
-      totalEmojis: user1.emojiCount,
-      topEmojis: user1.topEmojis,
-      singleWordReplyCount: user1.singleWordCount,
-      singleWordReplyPercent: user1.messageCount > 0 ? Math.round((user1.singleWordCount / user1.messageCount) * 100) : 0
-    },
-    user2: {
-      name: user2.name,
-      color: '#0F172A',
-      messageCount: user2.messageCount,
-      percentage: user2.messagePercentage,
-      avgCharLength: user2.avgCharLength || 14,
-      avgResponseTimeMin: user2.avgResponseTimeMinutes || 35,
-      startedPercentage: user2.startedPercentage || 50,
-      totalEmojis: user2.emojiCount,
-      topEmojis: user2.topEmojis,
-      singleWordReplyCount: user2.singleWordCount,
-      singleWordReplyPercent: user2.messageCount > 0 ? Math.round((user2.singleWordCount / user2.messageCount) * 100) : 0
-    }
+  const formattedUser1 = {
+    name: user1.name,
+    messageCount: user1.messageCount,
+    percentage: user1.messagePercentage,
+    characterCount: user1.characterCount,
+    avgCharLength: user1.avgCharLength,
+    wordCount: user1.wordCount,
+    avgWordsPerMessage: user1.avgWordsPerMessage,
+    totalEmojis: user1.emojiCount,
+    topEmojis: user1.topEmojis,
+    nightMessagesCount: user1.nightMessages,
+    earlyBirdMessagesCount: user1.earlyMessages,
+    nightPercentage: user1.nightPercentage,
+    avgResponseTimeMin: user1.avgResponseTimeMinutes ?? 0,
+    monologueCount: user1.monologues,
+    conversationStarterCount: user1.conversationStarters,
+    startedPercentage: user1.startedPercentage,
+    singleWordReplyCount: user1.singleWordCount || 0
   };
 
-  metrics.participants.slice(2).forEach((p, idx) => {
-    const colors = ['#6366F1', '#EC4899', '#10B981', '#F59E0B', '#8B5CF6'];
-    users[`user${idx + 3}`] = {
-      name: p.name,
-      color: colors[idx % colors.length],
-      messageCount: p.messageCount,
-      percentage: p.messagePercentage,
-      avgCharLength: p.avgCharLength || 10,
-      avgResponseTimeMin: p.avgResponseTimeMinutes || 40,
-      startedPercentage: p.startedPercentage || 20,
-      totalEmojis: p.emojiCount,
-      topEmojis: p.topEmojis,
-      singleWordReplyCount: p.singleWordCount
-    };
-  });
+  const formattedUser2 = {
+    name: user2.name,
+    messageCount: user2.messageCount,
+    percentage: user2.messagePercentage,
+    characterCount: user2.characterCount,
+    avgCharLength: user2.avgCharLength,
+    wordCount: user2.wordCount,
+    avgWordsPerMessage: user2.avgWordsPerMessage,
+    totalEmojis: user2.emojiCount,
+    topEmojis: user2.topEmojis,
+    nightMessagesCount: user2.nightMessages,
+    earlyBirdMessagesCount: user2.earlyMessages,
+    nightPercentage: user2.nightPercentage,
+    avgResponseTimeMin: user2.avgResponseTimeMinutes ?? 0,
+    monologueCount: user2.monologues,
+    conversationStarterCount: user2.conversationStarters,
+    startedPercentage: user2.startedPercentage,
+    singleWordReplyCount: user2.singleWordCount || 0
+  };
 
   return {
     totalMessages: metrics.totalMessages,
-    startDate: metrics.dateRange.start,
-    endDate: metrics.dateRange.end,
+    startDate: metrics.longestSilence.startDate ? metrics.longestSilence.startDate.split(' – ')[0] : 'Kayıt Başlangıcı',
+    endDate: metrics.longestSilence.endDate ? metrics.longestSilence.endDate.split(' – ')[1] : 'Kayıt Sonu',
     daysCount: metrics.daysSpan,
     dailyAverage: metrics.avgMessagesPerDay,
     longestSilenceHours: metrics.longestSilence.hours,
@@ -903,26 +881,19 @@ export function formatDeterministicMetrics(metrics: ChatMetrics): DeterministicM
     mostActiveHour: metrics.peakHour.label,
     mostActiveDay: metrics.peakDay.dayName,
     mostActiveDate: metrics.busiestDate.date,
-    timeDistribution: {
-      hourly: metrics.hourlyDistribution.map(h => ({ label: h.label, count: h.count })),
-      daily: metrics.dailyDistribution.map(d => ({ label: d.dayName, count: d.count })),
-      monthly: [
-        { label: 'Oca', count: Math.round(metrics.totalMessages * 0.08) },
-        { label: 'Şub', count: Math.round(metrics.totalMessages * 0.07) },
-        { label: 'Mar', count: Math.round(metrics.totalMessages * 0.09) },
-        { label: 'Nis', count: Math.round(metrics.totalMessages * 0.11) },
-        { label: 'May', count: Math.round(metrics.totalMessages * 0.14) },
-        { label: 'Haz', count: Math.round(metrics.totalMessages * 0.18) },
-        { label: 'Tem', count: Math.round(metrics.totalMessages * 0.17) },
-        { label: 'Ağu', count: Math.round(metrics.totalMessages * 0.16) }
-      ],
-      timeline: metrics.dailyDistribution.map(d => ({ label: d.dayName, count: d.count }))
+    users: {
+      user1: formattedUser1,
+      user2: formattedUser2
     },
-    users,
-    allTopEmojis: metrics.topEmojis.map(e => ({ emoji: e.emoji, count: e.count })),
-    timelineHighlights: metrics.timelineHighlights,
-    chatDictionary: metrics.chatDictionary,
+    timeDistribution: {
+      hourly: metrics.hourlyDistribution.map(h => ({ hour: h.label, percentage: h.percentage, count: h.count })),
+      daily: metrics.dailyDistribution.map(d => ({ day: d.dayName, percentage: d.percentage, count: d.count })),
+      monthly: metrics.monthlyTrends.map(m => ({ month: m.month, percentage: m.percentage, count: m.count }))
+    },
+    allTopEmojis: metrics.topEmojis.map(e => ({ emoji: e.emoji, count: e.count, label: `${e.emoji} (${e.count}x)` })),
     flagsReport: metrics.flagsReport,
-    toxicityRadar: metrics.toxicityRadar
+    toxicityRadar: metrics.toxicityRadar,
+    chatDictionary: metrics.chatDictionary,
+    timelineHighlights: metrics.timelineHighlights
   };
 }
