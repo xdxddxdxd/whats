@@ -1,0 +1,2 @@
+WhatsScope push permission test - 2026-08-19
+If you see this file, write access works.
