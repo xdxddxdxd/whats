@@ -10,11 +10,10 @@ import {
   RefreshCw,
   Trash2,
   MoreVertical,
-  Heart,
-  Share2,
-  ArrowLeft
+  ArrowLeft,
+  Bot,
+  Instagram
 } from 'lucide-react';
-import { Button } from '../ui/Button';
 
 interface DashboardHeaderProps {
   chat: {
@@ -31,6 +30,8 @@ interface DashboardHeaderProps {
   user2Name?: string;
   onOpenWrapped: () => void;
   onOpenPdf: () => void;
+  onOpenAskAi?: () => void;
+  onOpenStoryCard?: () => void;
   onOpenOwnerControls?: () => void;
   onOpenUpdate?: () => void;
   onOpenDelete?: () => void;
@@ -42,6 +43,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   user2Name = 'nisa cici',
   onOpenWrapped,
   onOpenPdf,
+  onOpenAskAi,
+  onOpenStoryCard,
   onOpenOwnerControls,
   onOpenUpdate,
   onOpenDelete,
@@ -83,16 +86,38 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </span>
         </Link>
 
-        {/* Right: "Ana Sayfa" Pill Button & Menu */}
+        {/* Right: Action Buttons & Menu */}
         <div className="flex items-center gap-2">
           
           <Link
             href="/"
-            className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm inline-flex items-center gap-1.5"
+            className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm inline-flex items-center gap-1.5"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
-            <span>Ana Sayfa</span>
+            <span className="hidden sm:inline">Ana Sayfa</span>
           </Link>
+
+          {/* AI Ask Button */}
+          {onOpenAskAi && (
+            <button
+              onClick={onOpenAskAi}
+              className="inline-flex items-center gap-1.5 rounded-full bg-sky-500 hover:bg-sky-600 border border-sky-600 px-3.5 py-1.5 text-xs font-bold text-white transition-all shadow-sm"
+            >
+              <Bot className="w-3.5 h-3.5 text-sky-100" />
+              <span>AI'a Sor</span>
+            </button>
+          )}
+
+          {/* Story Card Exporter Button */}
+          {onOpenStoryCard && (
+            <button
+              onClick={onOpenStoryCard}
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+            >
+              <Instagram className="w-3.5 h-3.5 text-pink-500" />
+              <span>Story İndir</span>
+            </button>
+          )}
 
           {/* Wrapped Action Button */}
           <button
@@ -115,6 +140,32 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
             {isMenuOpen && (
               <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white border border-slate-100 shadow-[0_10px_30px_rgba(15,23,42,0.12)] p-1.5 z-50 text-xs font-medium text-slate-700 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                {onOpenAskAi && (
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenAskAi();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-sky-700 transition-colors text-left"
+                  >
+                    <Bot className="w-4 h-4 text-sky-500" />
+                    <span>Sohbetinle Konuş (AI)</span>
+                  </button>
+                )}
+
+                {onOpenStoryCard && (
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenStoryCard();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-sky-700 transition-colors text-left"
+                  >
+                    <Instagram className="w-4 h-4 text-pink-500" />
+                    <span>Story PNG İndir</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
                     setIsMenuOpen(false);

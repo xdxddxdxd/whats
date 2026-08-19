@@ -50,6 +50,8 @@ export const chatAnalyticsData: FullChatAnalysisData = {
       avgResponseTimeMin: 36.1,
       startedPercentage: 58,
       totalEmojis: 1290,
+      singleWordReplyCount: 342,
+      singleWordReplyPercent: 19,
       topEmojis: [
         { emoji: "👍", count: 96 },
         { emoji: "😘", count: 89 }
@@ -64,6 +66,8 @@ export const chatAnalyticsData: FullChatAnalysisData = {
       avgResponseTimeMin: 42.0,
       startedPercentage: 42,
       totalEmojis: 887,
+      singleWordReplyCount: 215,
+      singleWordReplyPercent: 18,
       topEmojis: [
         { emoji: "🥺", count: 107 },
         { emoji: "😣", count: 93 },
@@ -132,6 +136,167 @@ export const chatAnalyticsData: FullChatAnalysisData = {
     { emoji: "🙏", count: 88 },
     { emoji: "👅", count: 82 },
     { emoji: "❤️", count: 68 }
+  ],
+  flagsReport: {
+    user1Flags: [
+      {
+        id: "u1_rf_1",
+        type: "red",
+        badge: "🚩",
+        title: "Tek Kelimelik Cevap Alışkanlığı",
+        desc: "Sohbette 342 kez tek kelimelik ('tm', 'ok', 'aynen') kısa cevap verdi.",
+        exampleQuote: "\"tm\"",
+        severity: "high"
+      },
+      {
+        id: "u1_rf_2",
+        type: "red",
+        badge: "🚩",
+        title: "Gece Mesajı Monopolü",
+        desc: "Gece 01:25'te penguenlerin uçması gibi absürt felsefi konular açarak uyutmadı.",
+        exampleQuote: "\"Penguenler uçabilseydi trafik olur muydu?\"",
+        severity: "low"
+      },
+      {
+        id: "u1_gf_1",
+        type: "green",
+        badge: "🟢",
+        title: "Sohbet Başlatma Liderliği",
+        desc: "Konuşmaların %58'ini bizzat başlatarak iletişimi asla koparmadı.",
+        exampleQuote: "\"Günaydın!! Bugün plan yapıyoruz dimi?\"",
+        severity: "high"
+      },
+      {
+        id: "u1_gf_2",
+        type: "green",
+        badge: "🟢",
+        title: "Hızlı Buluşma Organizasyonu",
+        desc: "Mekana herkesten önce varıp masa kapma alışkanlığı.",
+        exampleQuote: "\"Ben geçtim bile mekana köşedeki masadayım 🏎️⚡\"",
+        severity: "medium"
+      }
+    ],
+    user2Flags: [
+      {
+        id: "u2_rf_1",
+        type: "red",
+        badge: "🚩",
+        title: "Gecikmeli Dönüş & Toplantı Bahanesi",
+        desc: "Ortalama 42 dakika yanıt süresiyle ara sıra karşı tarafı merakta bıraktı.",
+        exampleQuote: "\"Sakin ol ya toplantıdaydım haha!\"",
+        severity: "high"
+      },
+      {
+        id: "u2_rf_2",
+        type: "red",
+        badge: "🚩",
+        title: "Dramatik Emoji Reaksiyonları",
+        desc: "🥺 ve 😣 emojilerini (toplam 200 kez) duygu sömürüsü ve şaka amaçlı kullandı.",
+        exampleQuote: "🥺 😣",
+        severity: "medium"
+      },
+      {
+        id: "u2_gf_1",
+        type: "green",
+        badge: "🟢",
+        title: "Yüksek Mizah & Kahkaha Enerjisi",
+        desc: "Sohbetteki en komik anketleri ve caps'leri paylaşarak enerjiyi zirveye taşıdı.",
+        exampleQuote: "\"KSHWODHWODJWOEJWOD FATİHTERİM MUTLU\"",
+        severity: "high"
+      },
+      {
+        id: "u2_gf_2",
+        type: "green",
+        badge: "🟢",
+        title: "Duygusal Açıklık & Samimiyet",
+        desc: "Mesaj başına 14.7 karakter ile duygu ve düşüncelerini özenle paylaştı.",
+        exampleQuote: "\"Evet ya çok iyi geldi mutlaka yapalım!\"",
+        severity: "medium"
+      }
+    ],
+    singleWordStats: {
+      user1Count: 342,
+      user2Count: 215,
+      topWords: [
+        { word: "tm", count: 124, sender: "Doğukan" },
+        { word: "aynen", count: 98, sender: "Doğukan" },
+        { word: "ok", count: 85, sender: "nisa cici" },
+        { word: "peki", count: 62, sender: "nisa cici" }
+      ]
+    }
+  },
+  toxicityRadar: {
+    dramaLevel: "Orta (Ara Sıra Gerilim)",
+    tripScore: { user1: 38, user2: 45 },
+    detectedPatterns: [
+      { phrase: "Sen bilirsin", sender: "Doğukan", time: "17:59", context: "Buluşma yeri seçiminde çekimser pasif tavır", intensity: 84, tag: "Görünürde Teslimiyet" },
+      { phrase: "İyi peki", sender: "nisa cici", time: "21:50", context: "Geç kalma uyarısı sonrası soğuk cevap", intensity: 90, tag: "Soğuk Onay" },
+      { phrase: "Yok bişey", sender: "nisa cici", time: "23:10", context: "Merak edilen soruya üstü kapalı sitem", intensity: 78, tag: "Üstü Kapalı Sitem" }
+    ],
+    coldPeriods: [
+      { dates: "1 Mayıs 2026 – 25 Mayıs 2026", hours: 575, triggerMessage: "575 saatlik büyük sessizlik dönemi" }
+    ]
+  },
+  chatDictionary: {
+    user1Words: [
+      { word: "aynen", count: 184, meaning: "Hızlı onaylama ve geçiştirme jargonu", sender: "Doğukan" },
+      { word: "harbiden", count: 96, meaning: "Şaşkınlık ve samimi onaylama", sender: "Doğukan" },
+      { word: "hallederiz", count: 72, meaning: "Sorumluluk alma ve özgüven ifadesi", sender: "Doğukan" },
+      { word: "kanka", count: 64, meaning: "Samimi arkadaş hitabı", sender: "Doğukan" }
+    ],
+    user2Words: [
+      { word: "koptum", count: 152, meaning: "Aşırı komik durumlarda kahkaha ifadesi", sender: "nisa cici" },
+      { word: "yaa", count: 118, meaning: "Duygusal tepki ve sitem ünlemi", sender: "nisa cici" },
+      { word: "aşko", count: 88, meaning: "Sevgi dolu samimi seslenme", sender: "nisa cici" },
+      { word: "şaka", count: 54, meaning: "Ortamı yumuşatma ifadesi", sender: "nisa cici" }
+    ],
+    sharedSlang: [
+      { phrase: "Kadıköy / Moda Sahil", count: 32, description: "Buluşmaların değişmez merkezi" },
+      { phrase: "Fatih Terim Modu", count: 14, description: "Beklenmedik bir başarı sonrası paylaşılan sevinç" },
+      { phrase: "Jet Yanıt", count: 21, description: "1 dakika altındaki rekor cevaplaşmalar" }
+    ]
+  },
+  timelineHighlights: [
+    {
+      id: "tl_1",
+      date: "9 Haziran 2025",
+      title: "İlk Kıvılcım & Kadıköy Planı",
+      emoji: "🚀",
+      description: "Doğukan'ın 'Günaydın!! Bugün plan yapıyoruz dimi?' mesajıyla efsanevi sohbet başladı.",
+      messageCount: 38,
+      quote: "\"Günaydın!! Bugün plan yapıyoruz dimi? ☕✨\"",
+      sender: "Doğukan"
+    },
+    {
+      id: "tl_2",
+      date: "2 Ağustos 2025",
+      title: "Büyük Anket & Fatih Terim Gecesi",
+      emoji: "🔥",
+      description: "nisa cici'nin açtığı 0 oylu anket ve Fatih Terim caps'leriyle rekor kahkaha atıldı.",
+      messageCount: 94,
+      quote: "\"KSHWODHWODJWOEJWOD FATİHTERİM MUTLU\"",
+      sender: "nisa cici"
+    },
+    {
+      id: "tl_3",
+      date: "1 Mayıs 2026",
+      title: "575 Saatlik Büyük Sessizlik",
+      emoji: "❄️",
+      description: "Araya giren 24 günlük yoğunluk ve ardından gelen büyük barışma dönemi.",
+      messageCount: 575,
+      quote: "\"1 Mayıs 2026 – 25 Mayıs 2026\"",
+      sender: "Sistem"
+    },
+    {
+      id: "tl_4",
+      date: "17 Ağustos 2026",
+      title: "En Son Mesaj & Güncel Zirve",
+      emoji: "✨",
+      description: "Doğukan'ın 'KEŞKE' mesajıyla 30.000 mesajlık dev arşiv tamamlandı.",
+      messageCount: 17822,
+      quote: "\"KEŞKE\"",
+      sender: "Doğukan"
+    }
   ],
   sentiment: {
     overallTone: "Nötr",

@@ -1,11 +1,16 @@
 import { ChatMetrics } from '../analytics/stats-engine';
-import { AISentimentResult, IntenseMessage, EmotionCategory } from '@/types/chat';
+import {
+  AISentimentResult,
+  IntenseMessage,
+  EmotionCategory,
+  FlagsReportData,
+  ToxicityRadarData,
+  ChatDictionaryData,
+  TimelineHighlight
+} from '@/types/chat';
 import { AIAnalysisResult, SuperlativeCard, WrappedSlideData } from './types';
 import { SmartSamplingResult } from './smart-sampling';
 
-/**
- * Deterministic & Rule-based fallback generator for Sentiment & Relationship dynamics
- */
 export function generateRuleBasedSentiment(
   metrics: ChatMetrics,
   sampling?: SmartSamplingResult
@@ -78,13 +83,14 @@ export function generateRuleBasedSentiment(
         [user1.name]: ['Gece Kuşu', 'Işık Hızı', 'Grup Lideri'],
         [user2.name]: ['Emoji Ustası', 'Grup Neşesi', 'Meraklı']
       }
-    }
+    },
+    flagsReport: metrics.flagsReport,
+    toxicityRadar: metrics.toxicityRadar,
+    chatDictionary: metrics.chatDictionary,
+    timelineHighlights: metrics.timelineHighlights
   };
 }
 
-/**
- * Full Wrapped & Superlatives Rule Based Generator (preserves existing wrapped experience)
- */
 export function generateSmartRuleBasedAnalysis(
   chatTitle: string,
   metrics: ChatMetrics,
@@ -185,7 +191,7 @@ export function generateSmartRuleBasedAnalysis(
       winner: calculatedSuperlatives.novelist.name,
       badge: '✍️',
       color: 'bg-white text-[#0A0A0A] border-[#E5E9F0]',
-      description: `Mesaj başına ortalama ${calculatedSuperlatives.novelist.avgWords} kelimeyle uzun soluklu yazan isim.`,
+      description: `Mesaj başına ortalama ${novelistWinner.avgWords} kelimeyle uzun soluklu yazan isim.`,
       quote: calculatedSuperlatives.novelist.sampleMessages[0] || '"Detaylı mesajlar..."',
       sampleQuotes: calculatedSuperlatives.novelist.sampleMessages,
       statLabel: 'Ort. Kelime/Mesaj',
