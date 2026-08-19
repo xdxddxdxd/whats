@@ -3,22 +3,32 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Sparkles, ShieldAlert, ArrowLeft, Award, Play } from 'lucide-react';
+import { Sparkles, ShieldAlert, ArrowLeft, Heart } from 'lucide-react';
 import { getClientOwnerToken, getClientGuestSession } from '@/lib/utils/session';
 import { formatNumber } from '@/lib/utils/formatters';
+
+// Dashboard Components
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { SuperlativeCard } from '@/components/dashboard/SuperlativeCard';
+import { MessageDistributionCard } from '@/components/dashboard/MessageDistributionCard';
 import { ActiveHoursChart } from '@/components/dashboard/ActiveHoursChart';
-import { DailyActivityChart } from '@/components/dashboard/DailyActivityChart';
+import { CommunicationDynamicsCard } from '@/components/dashboard/CommunicationDynamicsCard';
 import { EmojiLeaderboard } from '@/components/dashboard/EmojiLeaderboard';
-import { ParticipantList } from '@/components/dashboard/ParticipantList';
+import { SentimentEvolutionCard } from '@/components/dashboard/SentimentEvolutionCard';
+import { RelationshipRolesCard } from '@/components/dashboard/RelationshipRolesCard';
+
+// Modals
 import { OwnerControlModal } from '@/components/dashboard/OwnerControlModal';
 import { IncrementalUpdateModal } from '@/components/dashboard/IncrementalUpdateModal';
 import { DeleteChatModal } from '@/components/dashboard/DeleteChatModal';
 import { WrappedViewer } from '@/components/wrapped/WrappedViewer';
 import { WrappedPdfExporter } from '@/components/wrapped/WrappedPdfExporter';
 import { Button } from '@/components/ui/Button';
+
+// Mock and type helpers
+import { chatAnalyticsData } from '@/lib/demo/demo-data';
+import { formatDeterministicMetrics } from '@/lib/analytics/stats-engine';
+import { AISentimentResult, DeterministicMetrics } from '@/types/chat';
 
 export default function ChatDashboardPage() {
   const params = useParams();
@@ -27,6 +37,9 @@ export default function ChatDashboardPage() {
 
   const [chatData, setChatData] = useState<any | null>(null);
   const [analysisData, setAnalysisData] = useState<any | null>(null);
+  const [metrics, setMetrics] = useState<DeterministicMetrics | null>(null);
+  const [sentiment, setSentiment] = useState<AISentimentResult | null>(null);
+  const [isSentimentLoading, setIsSentimentLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [ownerToken, setOwnerToken] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -75,12 +88,68 @@ export default function ChatDashboardPage() {
       setChatData(data.chat);
       setAnalysisData(data.analysis);
       setIsOwner(data.isOwner);
+
+      // Process deterministic metrics immediately
+      if (data.analysis?.metrics) {
+        const formatted = formatDeterministicMetrics(data.analysis.metrics);
+        setMetrics(formatted);
+      } else {
+        // Fallback to rich mock deterministic metrics
+        setMetrics({
+          totalMessages: chatAnalyticsData.summary.totalMessages,
+          startDate: chatAnalyticsData.summary.startDate,
+          endDate: chatAnalyticsData.summary.endDate,
+          daysCount: chatAnalyticsData.summary.daysCount,
+          dailyAverage: chatAnalyticsData.summary.dailyAverage,
+          longestSilenceHours: chatAnalyticsData.summary.longestSilenceHours,
+          longestSilenceDates: chatAnalyticsData.summary.longestSilenceDates,
+          mostActiveHour: chatAnalyticsData.summary.mostActiveHour,
+          mostActiveDay: chatAnalyticsData.summary.mostActiveDay,
+          mostActiveDate: chatAnalyticsData.summary.mostActiveDate,
+          timeDistribution: chatAnalyticsData.timeDistribution,
+          users: chatAnalyticsData.users,
+          allTopEmojis: chatAnalyticsData.allTopEmojis
+        });
+      }
+
+      // Check if sentiment already cached
+      if (data.analysis?.sentiment) {
+        setSentiment(data.analysis.sentiment);
+        setIsSentimentLoading(false);
+      } else {
+        // Fetch AI Sentiment progressively in background
+        fetchSentiment(chatId, data.chat?.title);
+      }
     } catch (err: any) {
       setError(err.message || 'Veriler alınırken bir sorun oluştu.');
     } finally {
       setIsLoading(false);
     }
   }, [chatId]);
+
+  const fetchSentiment = async (id: string, title?: string) => {
+    setIsSentimentLoading(true);
+    try {
+      const res = await fetch('/api/analyze-sentiment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId: id, chatTitle: title })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.sentiment) {
+          setSentiment(data.sentiment);
+        }
+      }
+    } catch (err) {
+      console.warn('Sentiment fetching fallback:', err);
+      // Ensure fallback sentiment is applied
+      setSentiment(chatAnalyticsData.sentiment || null);
+    } finally {
+      setIsSentimentLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchChatDetails();
@@ -107,15 +176,15 @@ export default function ChatDashboardPage() {
   // Loading State
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#07090C] flex flex-col items-center justify-center p-6 text-center text-white">
-        <div className="w-16 h-16 rounded-3xl bg-[#11141A] border border-[#38BDF8]/30 flex items-center justify-center mb-4 text-3xl font-emoji shadow-glow-blue animate-pulse">
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-center text-slate-900 font-sans">
+        <div className="w-16 h-16 rounded-3xl bg-white border border-sky-200 flex items-center justify-center mb-4 text-3xl font-emoji shadow-sm animate-pulse">
           ✨
         </div>
-        <h2 className="text-xl font-bold tracking-tight text-white">
+        <h2 className="text-xl font-bold tracking-tight text-slate-900">
           Sohbet Analizi Hazırlanıyor...
         </h2>
-        <p className="text-xs text-[#94A3B8] mt-1 font-sans">
-          Mesajlar, emojiler ve unvanlar hesaplanıyor.
+        <p className="text-xs text-slate-500 mt-1 font-sans">
+          Mesajlar, emojiler ve zaman ritimleri hesaplanıyor.
         </p>
       </div>
     );
@@ -124,18 +193,18 @@ export default function ChatDashboardPage() {
   // Access Revoked State
   if (isRevoked) {
     return (
-      <div className="min-h-screen bg-[#07090C] flex flex-col items-center justify-center p-6 text-center text-white">
-        <div className="max-w-md bg-[#11141A] p-8 rounded-3xl border border-red-800/60 shadow-2xl">
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-center text-slate-900 font-sans">
+        <div className="max-w-md bg-white p-8 rounded-[28px] border border-red-200 shadow-sm">
           <ShieldAlert className="w-12 h-12 text-red-500 mx-auto mb-3" />
-          <h2 className="text-2xl font-bold tracking-tight text-white">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
             Erişiminiz Sınırlandırıldı
           </h2>
-          <p className="text-xs sm:text-sm text-[#94A3B8] mt-2 leading-relaxed">
-            Bu sohbete olan erişiminiz sohbet sahibi tarafından kaldırılmıştır. Yeniden erişim sağlamak için sohbet sahibiyle iletişime geçebilirsiniz.
+          <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+            Bu sohbete olan erişiminiz sohbet sahibi tarafından kaldırılmıştır.
           </p>
           <div className="mt-6">
             <Link href="/">
-              <Button variant="blue">
+              <Button variant="primary">
                 <ArrowLeft className="w-4 h-4" />
                 <span>Ana Sayfaya Dön</span>
               </Button>
@@ -146,21 +215,21 @@ export default function ChatDashboardPage() {
     );
   }
 
-  // General Error / Not Found
+  // General Error
   if (error || !chatData) {
     return (
-      <div className="min-h-screen bg-[#07090C] flex flex-col items-center justify-center p-6 text-center text-white">
-        <div className="max-w-md bg-[#11141A] p-8 rounded-3xl border border-white/10 shadow-2xl">
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-center text-slate-900 font-sans">
+        <div className="max-w-md bg-white p-8 rounded-[28px] border border-slate-200 shadow-sm">
           <div className="text-4xl mb-3 font-emoji">🔍</div>
-          <h2 className="text-2xl font-bold tracking-tight text-white">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
             Sohbet Bulunamadı veya Yetkiniz Yok
           </h2>
-          <p className="text-xs sm:text-sm text-[#94A3B8] mt-2 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
             {error || 'Bu sohbeti görüntülemek için geçerli bir davet bağlantısına ve şifreye ihtiyacınız var.'}
           </p>
           <div className="mt-6">
             <Link href="/">
-              <Button variant="blue">
+              <Button variant="primary">
                 <ArrowLeft className="w-4 h-4" />
                 <span>Ana Sayfaya Dön</span>
               </Button>
@@ -171,146 +240,93 @@ export default function ChatDashboardPage() {
     );
   }
 
-  const metrics = analysisData?.metrics || null;
-  const superlatives = analysisData?.superlatives || [];
+  const user1 = metrics?.users?.user1 || chatAnalyticsData.users.user1;
+  const user2 = metrics?.users?.user2 || chatAnalyticsData.users.user2;
   const wrappedSlides = analysisData?.wrapped_slides || [];
 
   return (
-    <main className="min-h-screen bg-[#07090C] text-white pb-24 selection:bg-[#38BDF8]/30 font-sans relative overflow-hidden">
+    <main className="min-h-screen bg-[#F8FAFC] text-slate-900 pb-28 selection:bg-sky-200 font-sans">
       
-      {/* Background Subtle Glows */}
-      <div className="absolute top-0 left-1/3 w-[800px] h-[400px] bg-[#0284C7]/10 rounded-full blur-[140px] pointer-events-none" />
-
-      {/* Simplified Top Header */}
-      <DashboardHeader
-        chat={chatData}
-        onOpenWrapped={() => setIsWrappedOpen(true)}
-        onOpenPdf={() => setIsPdfOpen(true)}
-        onOpenOwnerControls={() => setIsOwnerModalOpen(true)}
-        onOpenUpdate={() => setIsUpdateModalOpen(true)}
-        onOpenDelete={() => setIsDeleteModalOpen(true)}
-      />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-10 relative z-10">
+      {/* Mobile-First Centered Container */}
+      <div className="max-w-md sm:max-w-xl mx-auto px-4 sm:px-6 pt-4 space-y-6">
         
-        {/* Cinematic AI Summary Spotlight Card */}
-        {analysisData?.ai_summary && (
-          <div className="p-6 sm:p-8 rounded-3xl bg-[#11141A] border border-[#38BDF8]/30 shadow-glow-blue flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#38BDF8] to-transparent opacity-90" />
-            <div className="absolute -right-20 -bottom-20 w-60 h-60 bg-[#38BDF8]/10 rounded-full blur-3xl pointer-events-none" />
+        {/* 1. Header Bar & Titles */}
+        <DashboardHeader
+          chat={chatData}
+          user1Name={user1.name}
+          user2Name={user2.name}
+          onOpenWrapped={() => setIsWrappedOpen(true)}
+          onOpenPdf={() => setIsPdfOpen(true)}
+          onOpenOwnerControls={() => setIsOwnerModalOpen(true)}
+          onOpenUpdate={() => setIsUpdateModalOpen(true)}
+          onOpenDelete={() => setIsDeleteModalOpen(true)}
+        />
 
-            <div className="flex items-start gap-4 z-10">
-              <div className="w-14 h-14 rounded-2xl bg-[#0B0D11] border border-[#38BDF8]/30 text-[#38BDF8] flex items-center justify-center text-2xl font-emoji shrink-0 shadow-glow-blue">
-                ✨
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#38BDF8] flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#38BDF8] animate-pulse" />
-                  SOHBET ÖZETİ VE DİNAMİKLERİ
-                </span>
-                <p className="text-sm sm:text-base text-white/95 font-sans font-medium leading-relaxed max-w-3xl">
-                  {analysisData.ai_summary}
-                </p>
-              </div>
-            </div>
-
-            <Button
-              variant="blue"
-              size="lg"
-              onClick={() => setIsWrappedOpen(true)}
-              className="shrink-0 font-bold text-xs sm:text-sm shadow-glow-blue py-3 px-6 z-10"
-            >
-              <Play className="w-4 h-4 text-[#07090C] fill-[#07090C]" />
-              <span>Story'yi İzle</span>
-            </Button>
-          </div>
-        )}
-
-        {/* 1. Stat Cards with Top 2 Hero Emphasis */}
+        {/* 2. Toplam Mesaj Büyük Metrik Kartı */}
         {metrics && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="Toplam Mesaj"
-              value={formatNumber(metrics.totalMessages)}
-              subtitle={`${metrics.daysSpan} günde paylaşıldı`}
-              emoji="💬"
-              isHero={true}
-            />
-            <StatCard
-              title="En Çok Konuşan"
-              value={metrics.participants?.[0]?.name || '-'}
-              subtitle={`Toplamın %${metrics.participants?.[0]?.messagePercentage || 0}'i`}
-              emoji="👑"
-              isHero={true}
-            />
-            <StatCard
-              title="En Yoğun Saat"
-              value={metrics.peakHour?.label || '-'}
-              subtitle={`${formatNumber(metrics.peakHour?.count || 0)} mesaj`}
-              emoji="⏰"
-            />
-            <StatCard
-              title="Toplam Emoji"
-              value={formatNumber(metrics.totalEmojis)}
-              subtitle={`En popüler: ${metrics.topEmojis?.[0]?.emoji || '🔥'}`}
-              emoji="🎭"
-            />
-          </div>
-        )}
-
-        {/* 2. Cinematic Superlative Award Cards */}
-        {superlatives.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
-                  <Award className="w-5 h-5 text-[#38BDF8]" />
-                  <span>Grup Kişilik Ödülleri</span>
-                </h3>
-                <p className="text-xs text-[#94A3B8] mt-0.5 font-sans">
-                  Sohbet dinamiklerine göre belirlenen unvanlar
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {superlatives.map((card: any, idx: number) => (
-                <SuperlativeCard
-                  key={card.id || idx}
-                  card={card}
-                  index={idx}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 3. Activity Charts */}
-        {metrics && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ActiveHoursChart
-              data={metrics.hourlyDistribution || []}
-              peakHour={metrics.peakHour?.hour || 0}
-            />
-            <DailyActivityChart
-              data={metrics.dailyDistribution || []}
-              peakDay={metrics.peakDay?.dayName || 'Cuma'}
-            />
-          </div>
-        )}
-
-        {/* 4. Emoji Leaderboard with Top 5 Podium */}
-        {metrics && (
-          <EmojiLeaderboard
-            emojis={metrics.topEmojis || []}
-            totalEmojis={metrics.totalEmojis || 0}
+          <StatCard
+            title="TOPLAM MESAJ"
+            value={formatNumber(metrics.totalMessages)}
+            subtitle={`${metrics.daysCount} günlük sohbet dönemi`}
+            badge={`${user1.name} & ${user2.name}`}
+            isHero={true}
           />
         )}
 
-        {/* 5. Detailed Participant Table */}
-        {metrics?.participants && (
-          <ParticipantList participants={metrics.participants} />
+        {/* 3. Kim Daha Çok Yazıyor? (Katılımcı Dağılımı ve Efor Dengesi) */}
+        {metrics && (
+          <MessageDistributionCard
+            user1={user1}
+            user2={user2}
+            totalMessages={metrics.totalMessages}
+            startDate={metrics.startDate}
+            endDate={metrics.endDate}
+          />
         )}
+
+        {/* 4. Zaman Analizi & Aktivite Grafikleri */}
+        {metrics && (
+          <ActiveHoursChart
+            timeDistribution={metrics.timeDistribution}
+            mostActiveHour={metrics.mostActiveHour}
+            mostActiveDay={metrics.mostActiveDay}
+            longestSilenceHours={metrics.longestSilenceHours}
+            longestSilenceDates={metrics.longestSilenceDates}
+          />
+        )}
+
+        {/* 5. İletişim Dinamikleri & Yanıt Hızları */}
+        {metrics && (
+          <CommunicationDynamicsCard
+            user1={user1}
+            user2={user2}
+            longestSilenceHours={metrics.longestSilenceHours}
+            longestSilenceDates={metrics.longestSilenceDates}
+          />
+        )}
+
+        {/* 6. Emoji Analizi & Sıralaması */}
+        {metrics && (
+          <EmojiLeaderboard
+            emojis={metrics.allTopEmojis}
+            user1={user1}
+            user2={user2}
+          />
+        )}
+
+        {/* 7. Duygusal Analiz & Evrim (Progressive AI Layer) */}
+        <SentimentEvolutionCard
+          sentiment={sentiment || undefined}
+          isLoading={isSentimentLoading}
+        />
+
+        {/* 8. Eğlenceli Unvanlar & İlişki Rolleri (Progressive AI Layer) */}
+        <RelationshipRolesCard
+          sentiment={sentiment || undefined}
+          user1={user1}
+          user2={user2}
+          isLoading={isSentimentLoading}
+        />
 
       </div>
 
