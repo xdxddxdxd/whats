@@ -20,7 +20,10 @@ export type WrappedSlideType =
   | 'emoji_dna'
   | 'ai_narrative'
   | 'oracle'
-  | 'outro';
+  | 'outro'
+  | 'dynamics'
+  | 'change'
+  | 'health';
 
 export interface WrappedSlideData {
   id: string;
