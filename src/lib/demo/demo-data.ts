@@ -1,35 +1,172 @@
-export const DEMO_CHAT_TEXT = `[14.01.2026, 09:12:30] Zeynep: Günaydın herkese!! Bugün plan yapıyoruz dimi? ☕✨
-[14.01.2026, 09:13:05] Burak: Günaydınn. Ben kesin gelirim ama akşam 7'den önce çıkamam şirketten.
-[14.01.2026, 09:14:10] Ahmet: <Medya dahil edilmedi>
-[14.01.2026, 09:14:22] Ahmet: Şuna bakın ya sabah sabah karşıma çıkana bak haha 😂😂😂
-[14.01.2026, 09:15:00] Zeynep: AHAHAHA Ahmet nerden buldun bunu koptum yaaa 💀💀
-[14.01.2026, 09:15:30] Elif: Günaydın canlar, ben biraz geç kalabilirim ama yetişirim mutlaka 💕
-[14.01.2026, 12:45:10] Mehmet: Selamlar, nerede buluşuyoruz Kadıköy mü Beşiktaş mı?
-[14.01.2026, 12:45:30] Mehmet: Kadıköy olursa bana daha yakın
-[14.01.2026, 12:46:00] Mehmet: Cevap versenize heyy ordasınız dimi?
-[14.01.2026, 12:46:15] Mehmet: Aloooo 🏃💨
-[14.01.2026, 12:48:00] Zeynep: Sakin ol Mehmet ya toplantıdaydım haha! Kadıköy uyar bana 🍕
-[14.01.2026, 12:50:20] Burak: Kadıköy süper, Moda Sahil tarafında otururuz.
-[14.01.2026, 18:30:15] Ahmet: Ben geçtim bile mekana, köşedeki masadayım haberiniz olsun 🏎️⚡
-[14.01.2026, 18:31:00] Zeynep: Jet hızında yine Ahmet haha geliyoruz 5 dakikaya 🚀
-[14.01.2026, 23:45:10] Burak: Akşam harikaydı ya iyi ki toplandık valla 🍻
-[14.01.2026, 23:46:00] Elif: Evet ya çok iyi geldi, fotoğrafları yarın atarım gruba 📸✨
-[15.01.2026, 01:25:40] Ahmet: Uyumayan var mı? Kafama bir şey takıldı bakın şimdi... 🦉
-[15.01.2026, 01:27:12] Ahmet: Eğer penguenler uçabilseydi Antarktika'da trafik olur muydu acaba 🤔
-[15.01.2026, 01:30:00] Zeynep: Ahmet gece 1 buçukta düşündüğün şeye bak ya uyu artık ahaha 💀
-[15.01.2026, 01:32:15] Ahmet: Zeynep uykum yok napim haha ama cidden mantıklı soru bence 😂
-[16.01.2026, 15:20:00] Elif: Arkadaşlar size bomba bir dedikodu anlatıcam hazır mısınız?! ☕📢
-[16.01.2026, 15:20:45] Burak: Dinliyoruz hemen dökül 👀
-[16.01.2026, 15:21:00] Zeynep: Çayımı aldım bekliyorum anlat çabuk! 🔥
-[16.01.2026, 15:25:00] Elif: Hani geçen bahsettiğim çocuk vardı ya... Meğer bizim eski stajyerin kuzeniymiş!! Dünyanın küçüklüğüne bakar mısınız 😱😱
-[16.01.2026, 15:26:10] Ahmet: Yok artıık şaka yapıyorsun 🤯
-[17.01.2026, 11:15:00] Mehmet: Ya arkadaşlar kusura bakmayın 2 gündür yazamadım bildirimler kapalıymış meğer 👻
-[17.01.2026, 11:16:00] Zeynep: Klasik Mehmet hayaleti aramıza döndü sonunda ahaha 😂
-[17.01.2026, 11:18:20] Burak: Mehmet yine 3 iş günü sonra cevap verdi rekorunu tazeledi 👏
-[18.01.2026, 20:10:00] Burak: Hafta sonu kahvaltısı kimler geliyor?
-[18.01.2026, 20:10:30] Ahmet: Ben +1 🍳
-[18.01.2026, 20:11:00] Zeynep: Ben de varım kesinlikle! 🥞✨
-[18.01.2026, 20:11:45] Elif: Ben de gelirim canlarr 💕
-[18.01.2026, 20:15:00] Burak: Tamamdır yer ayarlıyorum o zaman süperiz 💪🔥`;
+import { FullChatAnalysisData } from '@/types/chat';
 
-export const DEMO_CHAT_TITLE = "Gıybet Kazanı & Kaos Ekibi 🔥";
+export const DEMO_CHAT_TEXT = `[09.06.2025, 09:12:30] Doğukan: Günaydın!! Bugün plan yapıyoruz dimi? ☕✨
+[09.06.2025, 09:13:05] nisa cici: Günaydınn. Ben kesin gelirim ama akşam 7'den önce çıkamam şirketten.
+[09.06.2025, 09:14:10] Doğukan: <Medya dahil edilmedi>
+[09.06.2025, 09:14:22] Doğukan: Şuna bakın ya sabah sabah karşıma çıkana bak haha 😂😂😂
+[09.06.2025, 09:15:00] nisa cici: AHAHAHA Doğukan nerden buldun bunu koptum yaaa 🥺🥺
+[09.06.2025, 09:15:30] nisa cici: Biraz geç kalabilirim ama yetişirim mutlaka 💕
+[09.06.2025, 12:45:10] Doğukan: Selamlar, nerede buluşuyoruz Kadıköy mü Beşiktaş mı?
+[09.06.2025, 12:45:30] Doğukan: Kadıköy olursa bana daha yakın
+[09.06.2025, 12:46:00] Doğukan: Cevap versenize heyy ordasınız dimi?
+[09.06.2025, 12:46:15] Doğukan: Aloooo 🏃💨
+[09.06.2025, 12:48:00] nisa cici: Sakin ol ya toplantıdaydım haha! Kadıköy uyar bana 🍕
+[09.06.2025, 12:50:20] Doğukan: Kadıköy süper, Moda Sahil tarafında otururuz.
+[09.06.2025, 18:30:15] Doğukan: Ben geçtim bile mekana, köşedeki masadayım haberiniz olsun 🏎️⚡
+[09.06.2025, 18:31:00] nisa cici: Jet hızında yine Doğukan haha geliyorum 5 dakikaya 🚀
+[09.06.2025, 23:45:10] Doğukan: Akşam harikaydı ya iyi ki toplandık valla 🍻
+[09.06.2025, 23:46:00] nisa cici: Evet ya çok iyi geldi, fotoğrafları yarın atarım 📸✨
+[10.06.2025, 01:25:40] Doğukan: Uyumayan var mı? Kafama bir şey takıldı bakın şimdi... 🦉
+[10.06.2025, 01:27:12] Doğukan: Eğer penguenler uçabilseydi Antarktika'da trafik olur muydu acaba 🤔
+[10.06.2025, 01:30:00] nisa cici: Doğukan gece 1 buçukta düşündüğün şeye bak ya uyu artık ahaha 😣
+[10.06.2025, 01:32:15] Doğukan: Uykum yok napim haha ama cidden mantıklı soru bence 😂
+[02.08.2025, 15:50:00] Doğukan: KORKUYORUM
+[02.08.2025, 21:50:00] nisa cici: KSHWODHWODJWOEJWOD FATİHTERİM MUTLU
+[02.08.2025, 23:10:00] nisa cici: ANKET: Ben cok iyi biriyim dimi SEÇENEK: Eed (0 oy) SEÇENEK: Evet (0 oy)
+[17.08.2026, 17:59:00] Doğukan: KEŞKE`;
+
+export const DEMO_CHAT_TITLE = "nisa cici ♡ Doğukan";
+
+export const chatAnalyticsData: FullChatAnalysisData = {
+  summary: {
+    totalMessages: 30000,
+    startDate: "9 Haziran 2025",
+    endDate: "17 Ağustos 2026",
+    daysCount: 434,
+    dailyAverage: 69,
+    longestSilenceHours: 575,
+    longestSilenceDates: "1 Mayıs 2026 – 25 Mayıs 2026",
+    mostActiveHour: "22:00",
+    mostActiveDay: "Pazar",
+    mostActiveDate: "2 Ağu 2025"
+  },
+  users: {
+    user1: {
+      name: "Doğukan",
+      color: "#38BDF8",
+      messageCount: 17822,
+      percentage: 59,
+      avgCharLength: 10.8,
+      avgResponseTimeMin: 36.1,
+      startedPercentage: 58,
+      totalEmojis: 1290,
+      topEmojis: [
+        { emoji: "👍", count: 96 },
+        { emoji: "😘", count: 89 }
+      ]
+    },
+    user2: {
+      name: "nisa cici",
+      color: "#0F172A",
+      messageCount: 12178,
+      percentage: 41,
+      avgCharLength: 14.7,
+      avgResponseTimeMin: 42.0,
+      startedPercentage: 42,
+      totalEmojis: 887,
+      topEmojis: [
+        { emoji: "🥺", count: 107 },
+        { emoji: "😣", count: 93 },
+        { emoji: "😘", count: 80 }
+      ]
+    }
+  },
+  timeDistribution: {
+    hourly: [
+      { label: "00:00", count: 850 },
+      { label: "03:00", count: 210 },
+      { label: "06:00", count: 120 },
+      { label: "09:00", count: 1450 },
+      { label: "12:00", count: 2600 },
+      { label: "15:00", count: 3100 },
+      { label: "18:00", count: 3900 },
+      { label: "21:00", count: 5200 },
+      { label: "22:00", count: 6400 },
+      { label: "23:00", count: 4800 }
+    ],
+    daily: [
+      { label: "Pazartesi", count: 4100 },
+      { label: "Salı", count: 3950 },
+      { label: "Çarşamba", count: 4300 },
+      { label: "Perşembe", count: 4200 },
+      { label: "Cuma", count: 4600 },
+      { label: "Cumartesi", count: 3800 },
+      { label: "Pazar", count: 5050 }
+    ],
+    monthly: [
+      { label: "Haz 25", count: 3800 },
+      { label: "Ağu 25", count: 4500 },
+      { label: "Eki 25", count: 2800 },
+      { label: "Ara 25", count: 3400 },
+      { label: "Şub 26", count: 1800 },
+      { label: "Nis 26", count: 1200 },
+      { label: "Haz 26", count: 1600 },
+      { label: "Ağu 26", count: 900 }
+    ],
+    timeline: [
+      { label: "Haz 25", count: 3800 },
+      { label: "Tem 25", count: 4200 },
+      { label: "Ağu 25", count: 4600 },
+      { label: "Eyl 25", count: 2600 },
+      { label: "Eki 25", count: 3400 },
+      { label: "Kas 25", count: 2100 },
+      { label: "Ara 25", count: 1800 },
+      { label: "Oca 26", count: 2900 },
+      { label: "Şub 26", count: 1400 },
+      { label: "Mar 26", count: 1100 },
+      { label: "Nis 26", count: 1500 },
+      { label: "May 26", count: 800 },
+      { label: "Haz 26", count: 1600 },
+      { label: "Tem 26", count: 1100 },
+      { label: "Ağu 26", count: 900 }
+    ]
+  },
+  allTopEmojis: [
+    { emoji: "🏻", count: 221 },
+    { emoji: "😘", count: 169 },
+    { emoji: "🥺", count: 145 },
+    { emoji: "😣", count: 130 },
+    { emoji: "😭", count: 115 },
+    { emoji: "😁", count: 98 },
+    { emoji: "👍", count: 96 },
+    { emoji: "🙏", count: 88 },
+    { emoji: "👅", count: 82 },
+    { emoji: "❤️", count: 68 }
+  ],
+  sentiment: {
+    overallTone: "Nötr",
+    dominantEmotion: "Memnuniyet",
+    happiestDate: "31 Mayıs 2026",
+    saddestDate: "26 Ocak 2026",
+    categoryDistribution: [
+      { category: "Mutluluk", count: 482, color: "#38BDF8" },
+      { category: "Sevgi", count: 395, color: "#EC4899" },
+      { category: "Eğlence", count: 320, color: "#F59E0B" },
+      { category: "Minnettarlık", count: 215, color: "#10B981" },
+      { category: "Sorun", count: 140, color: "#EF4444" },
+      { category: "Üzüntü", count: 95, color: "#6366F1" }
+    ],
+    emotionalTimeline: [
+      { week: "Haz 25", score: 65, label: "Pozitif" },
+      { week: "Eyl 25", score: 78, label: "Çok Pozitif" },
+      { week: "Ara 25", score: 50, label: "Nötr" },
+      { week: "Mar 26", score: 85, label: "Çok Pozitif" },
+      { week: "Haz 26", score: 60, label: "Pozitif" },
+      { week: "Ağu 26", score: 72, label: "Çok Pozitif" }
+    ],
+    intenseMessages: [
+      { sender: "Doğukan", time: "15:50", text: "KORKUYORUM", intensity: 100, emotion: "Korku" },
+      { sender: "nisa cici", time: "21:50", text: "KSHWODHWODJWOEJWOD FATİHTERİM MUTLU", intensity: 100, emotion: "Mutluluk" },
+      { sender: "nisa cici", time: "23:10", text: "ANKET: Ben cok iyi biriyim dimi SEÇENEK: Eed (0 oy) SEÇENEK: Evet (0 oy)", intensity: 43, emotion: "Memnuniyet" },
+      { sender: "Doğukan", time: "17:59", text: "KEŞKE", intensity: 100, emotion: "Pişmanlık" }
+    ],
+    relationshipRoles: {
+      romanticScore: { user1: 116, user2: 48 },
+      funnyScore: { user1: 28, user2: 35 },
+      titles: {
+        "Doğukan": ["Gece Kuşu", "Romantik Lider", "Hızlı Cevapçı"],
+        "nisa cici": ["Grup Neşesi", "Emoji Şampiyonu", "Meraklı"]
+      }
+    }
+  }
+};
