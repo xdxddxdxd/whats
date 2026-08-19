@@ -2,9 +2,19 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Sparkles, Download, Settings, RefreshCw, Trash2, ArrowLeft, Users, MessageSquare, MoreVertical, Crown } from 'lucide-react';
+import {
+  CheckCircle2,
+  Sparkles,
+  Download,
+  Settings,
+  RefreshCw,
+  Trash2,
+  MoreVertical,
+  Heart,
+  Share2,
+  ArrowLeft
+} from 'lucide-react';
 import { Button } from '../ui/Button';
-import { formatDate } from '@/lib/utils/formatters';
 
 interface DashboardHeaderProps {
   chat: {
@@ -17,6 +27,8 @@ interface DashboardHeaderProps {
     last_message_date: string | null;
     isOwner: boolean;
   };
+  user1Name?: string;
+  user2Name?: string;
   onOpenWrapped: () => void;
   onOpenPdf: () => void;
   onOpenOwnerControls?: () => void;
@@ -26,6 +38,8 @@ interface DashboardHeaderProps {
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   chat,
+  user1Name = 'Doğukan',
+  user2Name = 'nisa cici',
   onOpenWrapped,
   onOpenPdf,
   onOpenOwnerControls,
@@ -35,7 +49,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close menu on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -50,138 +63,154 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     };
   }, [isMenuOpen]);
 
+  const displayParticipantsTitle = chat.title.includes('♡') || chat.title.includes('&')
+    ? chat.title
+    : `${user2Name} ♡ ${user1Name}`;
+
   return (
-    <header className="bg-[#07090C]/80 backdrop-blur-xl border-b border-white/10 sticky top-0 z-30 transition-all">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
-        <div className="flex items-center justify-between gap-4">
-          
-          {/* Left: Back & Title Metadata */}
-          <div className="flex items-center gap-3 min-w-0">
-            <Link
-              href="/"
-              className="p-2.5 rounded-2xl bg-white/5 border border-white/10 text-[#94A3B8] hover:text-white hover:border-[#38BDF8]/40 transition-colors shrink-0"
-              title="Ana Sayfaya Dön"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white truncate max-w-[220px] sm:max-w-md">
-                  {chat.title}
-                </h1>
-                <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[#7DD3FC] font-mono">
-                  {chat.chat_type === 'group' ? (
-                    <>
-                      <Users className="w-3 h-3" />
-                      <span>{chat.total_participants} Kişi</span>
-                    </>
-                  ) : (
-                    <>
-                      <MessageSquare className="w-3 h-3" />
-                      <span>İkili</span>
-                    </>
-                  )}
-                </span>
-                {chat.isOwner && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#0284C7]/20 text-[#38BDF8] border border-[#38BDF8]/30 font-bold">
-                    <Crown className="w-3 h-3" />
-                    <span>Sahip</span>
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-[#94A3B8] font-sans truncate">
-                {formatDate(chat.first_message_date)} — {formatDate(chat.last_message_date)}
-              </p>
-            </div>
+    <div className="w-full space-y-6">
+      
+      {/* 1. Top Navbar Header */}
+      <header className="flex items-center justify-between py-2 border-b border-slate-100/80">
+        
+        {/* Left: Brand Logo & Title */}
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="w-9 h-9 rounded-2xl bg-sky-100 border border-sky-200 text-sky-600 flex items-center justify-center font-emoji text-lg shadow-sm group-hover:scale-105 transition-transform">
+            💬
           </div>
+          <span className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
+            WhatsScope
+          </span>
+        </Link>
 
-          {/* Right: Primary Story CTA + More Dropdown */}
-          <div className="flex items-center gap-2 shrink-0">
-            
-            {/* Primary Action Button -> "Story" */}
-            <Button
-              variant="blue"
-              size="md"
-              onClick={onOpenWrapped}
-              className="font-bold text-xs sm:text-sm shadow-glow-blue py-2.5 px-4 sm:px-6"
+        {/* Right: "Ana Sayfa" Pill Button & Menu */}
+        <div className="flex items-center gap-2">
+          
+          <Link
+            href="/"
+            className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm inline-flex items-center gap-1.5"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
+            <span>Ana Sayfa</span>
+          </Link>
+
+          {/* Wrapped Action Button */}
+          <button
+            onClick={onOpenWrapped}
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-sky-50 border border-sky-200/80 px-3.5 py-1.5 text-xs font-bold text-sky-700 hover:bg-sky-100 transition-colors shadow-sm"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-sky-500" />
+            <span>Story</span>
+          </button>
+
+          {/* More Actions Dropdown */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setIsMenuOpen(prev => !prev)}
+              className="p-1.5 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm"
+              title="Seçenekler"
             >
-              <Sparkles className="w-4 h-4 text-[#07090C]" />
-              <span>Story</span>
-            </Button>
+              <MoreVertical className="w-4 h-4" />
+            </button>
 
-            {/* Overflow Dropdown (⋯) */}
-            <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setIsMenuOpen(prev => !prev)}
-                className="p-2.5 rounded-2xl bg-[#11141A] border border-white/10 text-[#94A3B8] hover:text-white hover:border-[#38BDF8]/40 transition-colors"
-                title="Diğer Seçenekler"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </button>
+            {isMenuOpen && (
+              <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white border border-slate-100 shadow-[0_10px_30px_rgba(15,23,42,0.12)] p-1.5 z-50 text-xs font-medium text-slate-700 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onOpenWrapped();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-sky-700 transition-colors text-left"
+                >
+                  <Sparkles className="w-4 h-4 text-sky-500" />
+                  <span>Story'yi İzle (Wrapped)</span>
+                </button>
 
-              {/* Dropdown Menu */}
-              {isMenuOpen && (
-                <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-[#11141A] border border-white/10 shadow-2xl p-1.5 z-50 text-xs font-medium text-white space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onOpenPdf();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-sky-700 transition-colors text-left"
+                >
+                  <Download className="w-4 h-4 text-sky-500" />
+                  <span>PDF Olarak İndir</span>
+                </button>
+
+                {chat.isOwner && onOpenOwnerControls && (
                   <button
                     onClick={() => {
                       setIsMenuOpen(false);
-                      onOpenPdf();
+                      onOpenOwnerControls();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/5 hover:text-[#38BDF8] transition-colors text-left"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors text-left"
                   >
-                    <Download className="w-4 h-4 text-[#38BDF8]" />
-                    <span>PDF Olarak İndir</span>
+                    <Settings className="w-4 h-4 text-slate-500" />
+                    <span>Davet & Yönetim</span>
                   </button>
+                )}
 
-                  {chat.isOwner && onOpenOwnerControls && (
+                {chat.isOwner && onOpenUpdate && (
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenUpdate();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors text-left"
+                  >
+                    <RefreshCw className="w-4 h-4 text-slate-500" />
+                    <span>Sohbeti Güncelle</span>
+                  </button>
+                )}
+
+                {chat.isOwner && onOpenDelete && (
+                  <div className="pt-1 mt-1 border-t border-slate-100">
                     <button
                       onClick={() => {
                         setIsMenuOpen(false);
-                        onOpenOwnerControls();
+                        onOpenDelete();
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/5 hover:text-[#38BDF8] transition-colors text-left"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 transition-colors text-left"
                     >
-                      <Settings className="w-4 h-4 text-[#38BDF8]" />
-                      <span>Davet & Yönetim</span>
+                      <Trash2 className="w-4 h-4" />
+                      <span>Sohbeti Sil</span>
                     </button>
-                  )}
-
-                  {chat.isOwner && onOpenUpdate && (
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        onOpenUpdate();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/5 hover:text-[#38BDF8] transition-colors text-left"
-                    >
-                      <RefreshCw className="w-4 h-4 text-[#38BDF8]" />
-                      <span>Sohbeti Güncelle</span>
-                    </button>
-                  )}
-
-                  {chat.isOwner && onOpenDelete && (
-                    <div className="pt-1 mt-1 border-t border-white/10">
-                      <button
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          onOpenDelete();
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-red-400 hover:bg-red-950/40 hover:text-red-300 transition-colors text-left"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        <span>Sohbeti Sil</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
         </div>
+
+      </header>
+
+      {/* 2. Status Badge & Main Heading */}
+      <div className="text-center space-y-3 pt-2">
+        
+        {/* "Analiz Tamamlandı" Badge */}
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-semibold shadow-sm">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Analiz Tamamlandı</span>
+        </div>
+
+        {/* Page Main Title */}
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+          WhatsScope Sonuçları
+        </h1>
+
       </div>
-    </header>
+
+      {/* 3. "Kişi 1 ♡ Kişi 2 - Analiz Edildi" Header Bubble Card */}
+      <div className="max-w-xs mx-auto p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.04)] text-center space-y-1">
+        <h3 className="text-base font-bold text-emerald-700 flex items-center justify-center gap-1.5">
+          <span>{displayParticipantsTitle}</span>
+        </h3>
+        <p className="text-[11px] font-medium text-slate-400 font-sans">
+          Analiz Edildi
+        </p>
+      </div>
+
+    </div>
   );
 };

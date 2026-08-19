@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 
 interface StatCardProps {
@@ -6,6 +8,7 @@ interface StatCardProps {
   subtitle?: string;
   icon?: React.ReactNode;
   emoji?: string;
+  badge?: string;
   isHero?: boolean;
 }
 
@@ -15,47 +18,47 @@ export const StatCard: React.FC<StatCardProps> = ({
   subtitle,
   icon,
   emoji,
+  badge,
   isHero = false,
 }) => {
   return (
     <div
-      className={`p-5 sm:p-6 rounded-3xl transition-all duration-300 shadow-soft group hover:-translate-y-1 relative overflow-hidden ${
-        isHero
-          ? 'bg-[#11141A] border border-[#38BDF8]/40 shadow-glow-blue'
-          : 'bg-[#11141A] border border-white/10 hover:border-[#38BDF8]/40'
+      className={`p-6 rounded-[28px] bg-white border border-slate-100 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.04)] transition-all duration-300 hover:shadow-[0_8px_28px_-4px_rgba(15,23,42,0.08)] flex flex-col justify-between ${
+        isHero ? 'border-sky-100 ring-1 ring-sky-50' : ''
       }`}
     >
-      {isHero && (
-        <div className="absolute top-0 right-0 w-24 h-24 bg-[#38BDF8]/10 rounded-full blur-2xl pointer-events-none" />
-      )}
-
-      <div className="flex items-start justify-between relative z-10">
-        <div>
-          <p className="text-[11px] font-mono font-medium uppercase tracking-wider text-[#94A3B8]">{title}</p>
-          <h3
-            className={`font-mono mt-1.5 tracking-tight text-white group-hover:text-[#38BDF8] transition-colors ${
-              isHero ? 'text-3xl sm:text-4xl font-black text-[#7DD3FC]' : 'text-2xl sm:text-3xl font-extrabold'
-            }`}
-          >
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-sans">
+            {title}
+          </p>
+          <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-emerald-600 font-mono">
             {value}
           </h3>
           {subtitle && (
-            <p className="text-xs mt-1 text-[#64748B] font-sans font-normal line-clamp-1">
+            <p className="text-xs text-slate-400 font-medium font-sans pt-0.5">
               {subtitle}
             </p>
           )}
         </div>
 
-        {/* Icon Circle */}
-        <div
-          className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 text-2xl font-emoji transition-transform group-hover:scale-105 ${
-            isHero
-              ? 'bg-[#0284C7]/20 border border-[#38BDF8]/40 text-[#38BDF8] shadow-glow-blue'
-              : 'bg-[#0B0D11] border border-white/10 text-white'
-          }`}
-        >
-          {emoji ? <span className="font-emoji">{emoji}</span> : icon}
-        </div>
+        {(emoji || icon || badge) && (
+          <div className="shrink-0">
+            {badge ? (
+              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-50 border border-slate-100 text-slate-600 font-sans">
+                {badge}
+              </span>
+            ) : emoji ? (
+              <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-xl font-emoji">
+                {emoji}
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
+                {icon}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
