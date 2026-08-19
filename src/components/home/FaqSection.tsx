@@ -31,7 +31,8 @@ export const FaqSection: React.FC = () => {
     },
   ];
 
-  return (\n    <section id="faq" className="space-y-8 py-10">
+  return (
+    <section id="faq" className="space-y-8 py-10">
       <div className="text-center max-w-xl mx-auto space-y-1.5">
         <h2 className="text-3xl sm:text-4xl font-bold font-serif text-white">
           Sık Sorulan Sorular

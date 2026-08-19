@@ -1,18 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Zap, ShieldCheck } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 
 export const ChatMockupPreview: React.FC = () => {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    const timer1 = setTimeout(() => setStep(1), 800); // 1st message
-    const timer2 = setTimeout(() => setStep(2), 2000); // 2nd message
-    const timer3 = setTimeout(() => setStep(3), 3200); // typing indicator
-    const timer4 = setTimeout(() => setStep(4), 4500); // analysis result reveal
-    const timer5 = setTimeout(() => setStep(0), 11000); // loop restart
+    const timer1 = setTimeout(() => setStep(1), 800);
+    const timer2 = setTimeout(() => setStep(2), 2000);
+    const timer3 = setTimeout(() => setStep(3), 3200);
+    const timer4 = setTimeout(() => setStep(4), 4500);
+    const timer5 = setTimeout(() => setStep(0), 11000);
 
     return () => {
       clearTimeout(timer1);
@@ -50,7 +50,8 @@ export const ChatMockupPreview: React.FC = () => {
       <div className="space-y-3 min-h-[220px] flex flex-col justify-end">
         
         {/* Message 1 (Left / Zeynep) */}
-        {step >= 1 && (\n          <motion.div
+        {step >= 1 && (
+          <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             className="flex flex-col items-start max-w-[85%]"
@@ -102,7 +103,7 @@ export const ChatMockupPreview: React.FC = () => {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#7DD3FC]">
-                <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]\" />
+                <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" />
                 <span>Analiz Sonucu</span>
               </div>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#1F1F1F] text-white border border-white/10">

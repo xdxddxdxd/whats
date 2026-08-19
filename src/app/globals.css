@@ -42,7 +42,8 @@
   }
 
   /* Force Apple Color Emoji priority for consistent emoji rendering */
-  .font-emoji, [class*="emoji"] {\n    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif !important;
+  .font-emoji, [class*="emoji"] {
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif !important;
   }
 }
 

@@ -1,6 +1,90 @@
 import { ChatMetrics } from '../analytics/stats-engine';
+import { AISentimentResult, IntenseMessage, EmotionCategory } from '@/types/chat';
 import { AIAnalysisResult, SuperlativeCard, WrappedSlideData } from './types';
+import { SmartSamplingResult } from './smart-sampling';
 
+/**
+ * Deterministic & Rule-based fallback generator for Sentiment & Relationship dynamics
+ */
+export function generateRuleBasedSentiment(
+  metrics: ChatMetrics,
+  sampling?: SmartSamplingResult
+): AISentimentResult {
+  const user1 = metrics.participants[0] || { name: 'Kullanıcı 1', messageCount: 0, emojiCount: 0, wordCount: 0 };
+  const user2 = metrics.participants[1] || { name: 'Kullanıcı 2', messageCount: 0, emojiCount: 0, wordCount: 0 };
+
+  const u1Romantic = Math.max(15, Math.round(user1.emojiCount * 0.12 + user1.wordCount * 0.02));
+  const u2Romantic = Math.max(10, Math.round(user2.emojiCount * 0.08 + user2.wordCount * 0.015));
+
+  const u1Funny = Math.max(12, Math.round((metrics.calculatedSuperlatives?.hypeTrain?.exclamationCount || 10) * 0.4));
+  const u2Funny = Math.max(15, Math.round((metrics.calculatedSuperlatives?.hypeTrain?.exclamationCount || 10) * 0.6));
+
+  const totalCategoryPool = Math.max(100, Math.round(metrics.totalMessages * 0.06));
+  const categoryDistribution: EmotionCategory[] = [
+    { category: 'Mutluluk', count: Math.round(totalCategoryPool * 0.35), color: '#38BDF8', percentage: 35 },
+    { category: 'Sevgi', count: Math.round(totalCategoryPool * 0.25), color: '#EC4899', percentage: 25 },
+    { category: 'Eğlence', count: Math.round(totalCategoryPool * 0.20), color: '#F59E0B', percentage: 20 },
+    { category: 'Minnettarlık', count: Math.round(totalCategoryPool * 0.10), color: '#10B981', percentage: 10 },
+    { category: 'Sorun', count: Math.round(totalCategoryPool * 0.06), color: '#EF4444', percentage: 6 },
+    { category: 'Üzüntü', count: Math.round(totalCategoryPool * 0.04), color: '#6366F1', percentage: 4 }
+  ];
+
+  const fallbackSamples = sampling?.sampledMessages || [];
+  const emotionTypes = ['Korku', 'Mutluluk', 'Memnuniyet', 'Pişmanlık', 'Heyecan', 'Sevgi'];
+
+  let intenseMessages: IntenseMessage[] = [];
+
+  if (fallbackSamples.length > 0) {
+    intenseMessages = fallbackSamples
+      .filter(s => s.text.length > 3)
+      .slice(0, 5)
+      .map((s, idx) => ({
+        sender: s.sender,
+        time: s.time,
+        text: s.text,
+        intensity: s.intensityScore || (100 - idx * 15),
+        emotion: emotionTypes[idx % emotionTypes.length]
+      }));
+  }
+
+  if (intenseMessages.length === 0) {
+    intenseMessages = [
+      { sender: user1.name, time: '15:50', text: 'KORKUYORUM', intensity: 100, emotion: 'Korku' },
+      { sender: user2.name, time: '21:50', text: 'KSHWODHWODJWOEJWOD FATİHTERİM MUTLU', intensity: 100, emotion: 'Mutluluk' },
+      { sender: user2.name, time: '23:10', text: 'ANKET: Ben cok iyi biriyim dimi SEÇENEK: Eed (0 oy) SEÇENEK: Evet (0 oy)', intensity: 43, emotion: 'Memnuniyet' },
+      { sender: user1.name, time: '17:59', text: 'KEŞKE', intensity: 100, emotion: 'Pişmanlık' }
+    ];
+  }
+
+  return {
+    overallTone: 'Nötr',
+    dominantEmotion: 'Memnuniyet',
+    happiestDate: metrics.busiestDate?.date || '31 Mayıs 2026',
+    saddestDate: metrics.longestSilence?.startDate || '26 Ocak 2026',
+    categoryDistribution,
+    emotionalTimeline: [
+      { week: 'Haz 25', score: 65, label: 'Pozitif' },
+      { week: 'Eyl 25', score: 78, label: 'Çok Pozitif' },
+      { week: 'Ara 25', score: 50, label: 'Nötr' },
+      { week: 'Mar 26', score: 85, label: 'Çok Pozitif' },
+      { week: 'Haz 26', score: 60, label: 'Pozitif' },
+      { week: 'Ağu 26', score: 72, label: 'Çok Pozitif' }
+    ],
+    intenseMessages,
+    relationshipRoles: {
+      romanticScore: { user1: u1Romantic, user2: u2Romantic },
+      funnyScore: { user1: u1Funny, user2: u2Funny },
+      titles: {
+        [user1.name]: ['Gece Kuşu', 'Işık Hızı', 'Grup Lideri'],
+        [user2.name]: ['Emoji Ustası', 'Grup Neşesi', 'Meraklı']
+      }
+    }
+  };
+}
+
+/**
+ * Full Wrapped & Superlatives Rule Based Generator (preserves existing wrapped experience)
+ */
 export function generateSmartRuleBasedAnalysis(
   chatTitle: string,
   metrics: ChatMetrics,
@@ -10,7 +94,6 @@ export function generateSmartRuleBasedAnalysis(
   const topParticipant = participants[0] || { name: 'Grup Üyesi', messageCount: 0, messagePercentage: 0 };
   const secondParticipant = participants[1] || topParticipant;
 
-  // Build Superlative Cards with actual real messages from chat
   const superlatives: SuperlativeCard[] = [
     {
       id: 'night_owl',
@@ -134,7 +217,6 @@ export function generateSmartRuleBasedAnalysis(
       ? `${chatTitle} sohbetinde toplam ${totalMessages.toLocaleString('tr-TR')} mesaj paylaşıldı. En yoğun saatler ${peakHour.label} arası olurken, mesajların %${topParticipant.messagePercentage}'lik kısmını ${topParticipant.name} yazdı.`
       : `${chatTitle} grubu bu dönem tam ${totalMessages.toLocaleString('tr-TR')} mesaj ve ${totalEmojis.toLocaleString('tr-TR')} emoji ile anlar biriktirdi. En hareketli gün ${peakDay.dayName} oldu.`;
 
-  // Wrapped Slides for Fullscreen Story
   const wrappedSlides: WrappedSlideData[] = [
     {
       id: 'slide_intro',
@@ -144,11 +226,7 @@ export function generateSmartRuleBasedAnalysis(
       badge: 'WRAPPED 2026',
       gradient: 'from-[#0A0A0A] to-[#141414]',
       narrative: `Hazır mısınız? Bu sohbetin arka planındaki tüm sırlar, rekorlar ve gruptaki en ikonik karakterler ortaya çıkıyor!`,
-      extraData: {
-        chatTitle,
-        daysSpan,
-        participantCount: participants.length
-      }
+      extraData: { chatTitle, daysSpan, participantCount: participants.length }
     },
     {
       id: 'slide_stats',
@@ -189,9 +267,7 @@ export function generateSmartRuleBasedAnalysis(
       badge: 'SUPERLATIVES',
       gradient: 'from-[#0A0A0A] to-[#141414]',
       narrative: `Grupta herkesin bir görevi vardı: Geceyi ${calculatedSuperlatives.nightOwl.name} aydınlattı, ${calculatedSuperlatives.ghost.name} gizemini korudu, ${calculatedSuperlatives.speedster.name} ise parmak hız rekoru kırdı!`,
-      extraData: {
-        items: superlatives.slice(0, 4)
-      }
+      extraData: { items: superlatives.slice(0, 4) }
     },
     {
       id: 'slide_emojis',
@@ -227,11 +303,7 @@ export function generateSmartRuleBasedAnalysis(
       badge: 'PAYLAŞ & İNDİR',
       gradient: 'from-[#0A0A0A] to-[#141414]',
       narrative: `Harika bir arkadaşlık, bol kahkaha ve binlerce hatıra... Bu Yıl Özetini Story'de paylaş veya PDF olarak arşivle!`,
-      extraData: {
-        chatTitle,
-        totalMessages,
-        participantsCount: participants.length
-      }
+      extraData: { chatTitle, totalMessages, participantsCount: participants.length }
     }
   ];
 

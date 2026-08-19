@@ -41,7 +41,8 @@ export const ChatList: React.FC<ChatListProps> = ({ chats, onDeleteClick }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {chats.map((chat) => (\n          <Card
+        {chats.map((chat) => (
+          <Card
             key={chat.id}
             className="p-5 sm:p-6 bg-white border border-[#E5E9F0] hover:border-[#38BDF8] transition-all flex flex-col justify-between"
           >

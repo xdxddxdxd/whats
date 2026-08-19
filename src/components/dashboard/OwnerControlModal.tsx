@@ -48,12 +48,12 @@ export const OwnerControlModal: React.FC<OwnerControlModalProps> = ({
     setIsLoadingGuests(true);
     try {
       const res = await fetch(`/api/chats/${chatId}/guests?owner_token=${ownerToken}`);
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
         setGuests(data.guests || []);
       }
     } catch (err) {
-      console.error('Misafir listesi yüklenemedi:', err);
+      console.error('Misafir listesi hatası:', err);
     } finally {
       setIsLoadingGuests(false);
     }
@@ -63,49 +63,53 @@ export const OwnerControlModal: React.FC<OwnerControlModalProps> = ({
     if (isOpen) {
       fetchGuests();
     }
-  }, [isOpen, chatId]);
+  }, [isOpen]);
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(inviteUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+    if (typeof window !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(inviteUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
   };
 
   const handleCopyPin = () => {
-    if (passwordPin) {
+    if (typeof window !== 'undefined' && navigator.clipboard && passwordPin) {
       navigator.clipboard.writeText(passwordPin);
       setCopiedPin(true);
       setTimeout(() => setCopiedPin(false), 2000);
     }
   };
 
-  const handleToggleRevoke = async (guestId: string, currentStatus: boolean) => {
+  const handleToggleRevoke = async (guestId: string, currentRevoked: boolean) => {
+    setActionError(null);
     try {
       const res = await fetch(`/api/chats/${chatId}/guests`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           guestId,
-          isRevoked: !currentStatus,
-          ownerToken
-        })
+          isRevoked: !currentRevoked,
+          ownerToken,
+        }),
       });
 
-      if (res.ok) {
-        setGuests(prev =>
-          prev.map(g => (g.id === guestId ? { ...g, is_revoked: !currentStatus } : g))
-        );
-      } else {
+      if (!res.ok) {
         const data = await res.json();
-        setActionError(data.error || 'İşlem başarısız');
+        throw new Error(data.error || 'İşlem başarısız.');
       }
+
+      setGuests(prev =>
+        prev.map(g => (g.id === guestId ? { ...g, is_revoked: !currentRevoked } : g))
+      );
     } catch (err: any) {
-      setActionError(err.message);
+      setActionError(err.message || 'Yetki güncellenemedi.');
     }
   };
 
   const handleRunReAnalyze = async () => {
     setIsReAnalyzing(true);
+    setActionError(null);
     try {
       await onReAnalyze();
       onClose();
@@ -141,52 +145,38 @@ export const OwnerControlModal: React.FC<OwnerControlModalProps> = ({
                 type="text"
                 readOnly
                 value={inviteUrl}
-                className="w-full text-xs font-mono bg-white border border-[#E5E9F0] rounded-xl px-3 py-2 text-[#0A0A0A] select-all"
+                className="flex-1 bg-white border border-[#E5E9F0] rounded-xl px-3 py-2 text-xs font-mono text-[#0A0A0A] select-all outline-none"
               />
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleCopyLink}
-                className="shrink-0"
-              >
+              <Button size="sm" variant="secondary" onClick={handleCopyLink}>
                 {copiedLink ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedLink ? 'Kopyalandı' : 'Kopyala'}</span>
+                <span>{copiedLink ? 'Kopyalandı' : 'Linki Kopyala'}</span>
               </Button>
             </div>
           </div>
 
           <div>
             <label className="text-xs text-[#6B7280] font-medium block mb-1">
-              Giriş Şifresi / PIN
+              Sabit Giriş PIN / Şifre
             </label>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 readOnly
                 value={passwordPin || '------'}
-                className="w-full text-sm font-mono font-bold tracking-widest bg-white border border-[#E5E9F0] rounded-xl px-3 py-2 text-[#0A0A0A] select-all"
+                className="w-36 bg-white border border-[#E5E9F0] rounded-xl px-3 py-2 text-base font-mono font-bold tracking-widest text-[#0A0A0A] text-center select-all outline-none"
               />
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleCopyPin}
-                className="shrink-0"
-              >
+              <Button size="sm" variant="secondary" onClick={handleCopyPin}>
                 {copiedPin ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedPin ? 'Kopyalandı' : 'Kopyala'}</span>
+                <span>{copiedPin ? 'PIN Kopyalandı' : 'PIN Kopyala'}</span>
               </Button>
             </div>
           </div>
-
-          <p className="text-[11px] text-[#6B7280] leading-relaxed">
-            💡 Arkadaşlarınız bu bağlantıya tıklayıp şifreyi ve isimlerini girerek analizi ve Wrapped'ı anında görüntüleyebilir.
-          </p>
         </div>
 
-        {/* Guest Sessions & Revocation Management */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs font-bold text-[#0A0A0A] uppercase tracking-wider flex items-center gap-2">
+        {/* Guests Access Control List */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold text-[#0A0A0A] flex items-center gap-1.5 uppercase tracking-wider">
               <ShieldCheck className="w-4 h-4 text-[#0284C7]" />
               <span>Giriş Yapan Davetliler ({guests.length})</span>
             </h4>
@@ -199,4 +189,80 @@ export const OwnerControlModal: React.FC<OwnerControlModalProps> = ({
             </button>
           </div>
 
-          {guests.length === 0 ? (\n            <div className=\"text-center py-6 px-4 bg-[#F7F9FC] rounded-2xl border border-[#E5E9F0] text-xs text-[#6B7280]\">\n              Henüz davet linkinizle giriş yapan kimse olmadı. Linki arkadaşlarınızla paylaşın!\n            </div>\n          ) : (\n            <div className=\"divide-y divide-[#E5E9F0] border border-[#E5E9F0] rounded-2xl overflow-hidden bg-white\">\n              {guests.map(g => (\n                <div key={g.id} className=\"p-3 flex items-center justify-between gap-3 text-xs\">\n                  <div>\n                    <div className=\"flex items-center gap-2\">\n                      <span className=\"font-bold text-[#0A0A0A]\">{g.guest_name}</span>\n                      {g.is_revoked ? (\n                        <span className=\"px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-semibold\">\n                          Erişimi Kesildi\n                        </span>\n                      ) : (\n                        <span className=\"px-2 py-0.5 rounded-full bg-[#F0F9FF] text-[#0284C7] text-[10px] font-semibold border border-[#BAE6FD]\">\n                          Aktif\n                        </span>\n                      )}\n                    </div>\n                    <span className=\"text-[11px] text-[#6B7280] block mt-0.5 font-mono\">\n                      Giriş: {new Date(g.created_at).toLocaleDateString('tr-TR')}\n                    </span>\n                  </div>\n\n                  <Button\n                    variant={g.is_revoked ? 'blue' : 'danger'}\n                    size=\"sm\"\n                    onClick={() => handleToggleRevoke(g.id, g.is_revoked)}\n                    className=\"text-xs shrink-0\"\n                  >\n                    {g.is_revoked ? (\n                      <>\n                        <UserCheck className=\"w-3.5 h-3.5\" />\n                        <span>Erişimi Aç</span>\n                      </>\n                    ) : (\n                      <>\n                        <UserX className=\"w-3.5 h-3.5\" />\n                        <span>Erişimi Kes</span>\n                      </>\n                    )}\n                  </Button>\n                </div>\n              ))}\n            </div>\n          )}\n        </div>\n\n        {/* Re-Analyze Action */}\n        <div className=\"pt-2 border-t border-[#E5E9F0] flex items-center justify-between\">\n          <div>\n            <p className=\"text-xs font-bold text-[#0A0A0A]\">AI Analizini Yenile</p>\n            <p className=\"text-[11px] text-[#6B7280]\">Kişilik kartlarını ve Wrapped anlatılarını yeniden üretin.</p>\n          </div>\n          <Button\n            variant=\"secondary\"\n            size=\"sm\"\n            onClick={handleRunReAnalyze}\n            isLoading={isReAnalyzing}\n          >\n            <RefreshCw className=\"w-4 h-4\" />\n            <span>Yeniden Analiz Et</span>\n          </Button>\n        </div>\n\n        {actionError && (\n          <p className=\"text-xs text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200\">\n            {actionError}\n          </p>\n        )}\n\n      </div>\n    </Modal>\n  );\n};\n
+          {guests.length === 0 ? (
+            <div className="text-center py-6 px-4 bg-[#F7F9FC] rounded-2xl border border-[#E5E9F0] text-xs text-[#6B7280]">
+              Henüz davet linkinizle giriş yapan kimse olmadı. Linki arkadaşlarınızla paylaşın!
+            </div>
+          ) : (
+            <div className="divide-y divide-[#E5E9F0] border border-[#E5E9F0] rounded-2xl overflow-hidden bg-white">
+              {guests.map(g => (
+                <div key={g.id} className="p-3 flex items-center justify-between gap-3 text-xs">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[#0A0A0A]">{g.guest_name}</span>
+                      {g.is_revoked ? (
+                        <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-semibold">
+                          Erişimi Kesildi
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-[#F0F9FF] text-[#0284C7] text-[10px] font-semibold border border-[#BAE6FD]">
+                          Aktif
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-[#6B7280] block mt-0.5 font-mono">
+                      Giriş: {new Date(g.created_at).toLocaleDateString('tr-TR')}
+                    </span>
+                  </div>
+
+                  <Button
+                    variant={g.is_revoked ? 'blue' : 'danger'}
+                    size="sm"
+                    onClick={() => handleToggleRevoke(g.id, g.is_revoked)}
+                    className="text-xs shrink-0"
+                  >
+                    {g.is_revoked ? (
+                      <>
+                        <UserCheck className="w-3.5 h-3.5" />
+                        <span>Erişimi Aç</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserX className="w-3.5 h-3.5" />
+                        <span>Erişimi Kes</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Re-Analyze Action */}
+        <div className="pt-2 border-t border-[#E5E9F0] flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-[#0A0A0A]">AI Analizini Yenile</p>
+            <p className="text-[11px] text-[#6B7280]">Kişilik kartlarını ve Wrapped anlatılarını yeniden üretin.</p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleRunReAnalyze}
+            isLoading={isReAnalyzing}
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Yeniden Analiz Et</span>
+          </Button>
+        </div>
+
+        {actionError && (
+          <p className="text-xs text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200">
+            {actionError}
+          </p>
+        )}
+
+      </div>
+    </Modal>
+  );
+};
