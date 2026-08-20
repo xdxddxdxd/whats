@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Play, HelpCircle } from 'lucide-react';
 import { getClientOwnerToken } from '@/lib/utils/session';
 import { BentoHero } from '@/components/home/BentoHero';
-import { InteractivePhoneGuide } from '@/components/home/InteractivePhoneGuide';
 import { UploadAndFeaturesSection } from '@/components/home/UploadAndFeaturesSection';
 import { InteractiveFaq } from '@/components/home/InteractiveFaq';
 import { HowToExportGuideModal } from '@/components/home/HowToExportGuideModal';
@@ -54,13 +53,8 @@ export default function HomePage() {
     }
   };
 
-  const scrollToPhoneGuide = () => {
-    const el = document.getElementById('phone-guide');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      setIsGuideOpen(true);
-    }
+  const openGuide = () => {
+    setIsGuideOpen(true);
   };
 
   return (
@@ -88,7 +82,7 @@ export default function HomePage() {
           <div className="flex items-center gap-3 sm:gap-6">
             <button
               type="button"
-              onClick={scrollToPhoneGuide}
+              onClick={openGuide}
               className="text-xs sm:text-sm text-[#94A3B8] hover:text-[#38BDF8] transition-colors flex items-center gap-1.5 font-medium"
             >
               <HelpCircle className="w-4 h-4 text-[#38BDF8]" />
@@ -134,20 +128,15 @@ export default function HomePage() {
       {/* Main Content Sections */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20 sm:space-y-28 relative z-10">
         
-        {/* 1. Bento Hero Section */}
+        {/* 1. Bento Hero Section (with Embedded Live Phone Simulator) */}
         <BentoHero
           onUploadClick={scrollToUpload}
           onDemoClick={handleCreateDemo}
-          onOpenGuide={scrollToPhoneGuide}
+          onOpenGuide={() => setIsGuideOpen(true)}
           isDemoLoading={isDemoLoading}
         />
 
-        {/* 2. Interactive Animated Phone Export Guide Simulator */}
-        <div id="phone-guide" className="scroll-mt-24">
-          <InteractivePhoneGuide onUploadClick={scrollToUpload} />
-        </div>
-
-        {/* 3. Side-by-Side: Yükleme (Solda) + Özellikler (Sağda) */}
+        {/* 2. Side-by-Side: Yükleme (Solda) + Özellikler (Sağda) */}
         <UploadAndFeaturesSection
           ownerToken={ownerToken}
           isLimitReached={false}
