@@ -13,11 +13,8 @@ import {
   ArrowLeft,
   Bot,
   Instagram,
-  QrCode,
-  Crown,
-  Key,
+  QrCode
 } from 'lucide-react';
-import { getLicenseInfo } from '@/lib/utils/license';
 
 interface DashboardHeaderProps {
   chat: {
@@ -40,7 +37,6 @@ interface DashboardHeaderProps {
   onOpenOwnerControls?: () => void;
   onOpenUpdate?: () => void;
   onOpenDelete?: () => void;
-  onOpenLicenseModal?: () => void;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
@@ -55,24 +51,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onOpenOwnerControls,
   onOpenUpdate,
   onOpenDelete,
-  onOpenLicenseModal,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isPro, setIsPro] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const info = getLicenseInfo();
-    setIsPro(info.isPro);
-
-    const handleLicenseChange = () => {
-      const updated = getLicenseInfo();
-      setIsPro(updated.isPro);
-    };
-
-    window.addEventListener('licenseChanged', handleLicenseChange);
-    return () => window.removeEventListener('licenseChanged', handleLicenseChange);
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -118,21 +99,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
             <span className="hidden sm:inline">Ana Sayfa</span>
           </Link>
-
-          {/* PRO License Status / Upgrade Button */}
-          {onOpenLicenseModal && (
-            <button
-              onClick={onOpenLicenseModal}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all shadow-sm ${
-                isPro
-                  ? 'bg-amber-500/15 border border-amber-500/40 text-amber-700 hover:bg-amber-500/25'
-                  : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-[0_2px_10px_rgba(245,158,11,0.25)]'
-              }`}
-            >
-              <Crown className={`w-3.5 h-3.5 ${isPro ? 'text-amber-600 fill-amber-500' : 'text-yellow-200 fill-yellow-200'}`} />
-              <span>{isPro ? 'PRO Üye 👑' : "PRO'ya Geç"}</span>
-            </button>
-          )}
 
           {/* AI Ask Button */}
           {onOpenAskAi && (
@@ -189,19 +155,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
             {isMenuOpen && (
               <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white border border-slate-100 shadow-[0_10px_30px_rgba(15,23,42,0.12)] p-1.5 z-50 text-xs font-medium text-slate-700 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
-                {onOpenLicenseModal && (
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      onOpenLicenseModal();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-900 font-bold hover:bg-amber-100 transition-colors text-left"
-                  >
-                    <Crown className="w-4 h-4 text-amber-600 fill-amber-500" />
-                    <span>{isPro ? 'PRO Lisans Yönetimi' : "👑 PRO Üyelik & Lisans"}</span>
-                  </button>
-                )}
-
                 {onOpenQr && (
                   <button
                     onClick={() => {

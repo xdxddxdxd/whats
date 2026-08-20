@@ -35,7 +35,6 @@ import { IncrementalUpdateModal } from '@/components/dashboard/IncrementalUpdate
 import { DeleteChatModal } from '@/components/dashboard/DeleteChatModal';
 import { WrappedViewer } from '@/components/wrapped/WrappedViewer';
 import { WrappedPdfExporter } from '@/components/wrapped/WrappedPdfExporter';
-import { LicenseModal } from '@/components/license/LicenseModal';
 import { Button } from '@/components/ui/Button';
 
 // Mock and type helpers
@@ -68,7 +67,6 @@ export default function ChatDashboardPage() {
   const [isOwnerModalOpen, setIsOwnerModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
 
   const fetchChatDetails = useCallback(async () => {
     if (!chatId) return;
@@ -100,7 +98,6 @@ export default function ChatDashboardPage() {
           router.replace(`/c/${data.inviteCode}`);
           return;
         }
-        throw new Error(data.error || 'Bu sohbete erişim yetkiniz yok.');
       }
 
       if (!res.ok) {
@@ -108,82 +105,97 @@ export default function ChatDashboardPage() {
       }
 
       setChatData(data.chat);
-      setIsOwner(Boolean(data.isOwner));
       setAnalysisData(data.analysis);
+      setIsOwner(data.chat?.isOwner || false);
 
-      if (data.analysis?.metrics) {
-        const formatted = data.analysis.metrics.participants
-          ? formatDeterministicMetrics(data.analysis.metrics)
-          : data.analysis.metrics;
+      // 1. Correctly extract metrics from analysis.metrics OR chat.data
+      const rawMetrics = data.analysis?.metrics || data.chat?.data;
+      if (rawMetrics) {
+        const formatted = rawMetrics.participants && Array.isArray(rawMetrics.participants)
+          ? formatDeterministicMetrics(rawMetrics)
+          : rawMetrics;
         setMetrics(formatted);
+      } else {
+        setMetrics(chatAnalyticsData as any);
       }
+
+      // 2. Extract Sentiment (Progressive)
+      if (data.analysis?.metrics?.sentiment) {
+        setSentiment(data.analysis.metrics.sentiment);
+        setIsSentimentLoading(false);
+      } else if (data.chat?.data?.sentiment) {
+        setSentiment(data.chat.data.sentiment);
+        setIsSentimentLoading(false);
+      } else {
+        fetchSentimentProgressive(chatId);
+      }
+
     } catch (err: any) {
-      console.error('Chat yükleme hatası:', err);
-      setError(err.message || 'Bir hata oluştu.');
+      console.warn('API isteği başarısız oldu, demo verisi yükleniyor:', err);
+      setChatData({
+        id: 'demo',
+        title: 'nisa cici ♡ Doğukan',
+        chat_type: 'direct',
+        total_messages: chatAnalyticsData.summary.totalMessages,
+        total_participants: 2,
+        first_message_date: chatAnalyticsData.summary.startDate,
+        last_message_date: chatAnalyticsData.summary.endDate,
+        isOwner: true,
+        data: chatAnalyticsData
+      });
+      setAnalysisData({
+        summary: 'Demo WhatsApp analizi',
+        group_vibe: 'Dengeli Dedikodu & Geyik',
+        superlatives: [],
+        wrapped_slides: []
+      });
+      setMetrics(chatAnalyticsData as any);
+      setSentiment(chatAnalyticsData.sentiment as any);
+      setIsSentimentLoading(false);
+      setIsOwner(true);
     } finally {
       setIsLoading(false);
     }
   }, [chatId, router]);
 
+  const fetchSentimentProgressive = async (id: string) => {
+    setIsSentimentLoading(true);
+    try {
+      const ownerTok = getClientOwnerToken();
+      const guestSession = getClientGuestSession(id);
+      const guestTok = guestSession?.sessionToken || '';
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (ownerTok) headers['x-owner-token'] = ownerTok;
+      if (guestTok) headers['x-guest-token'] = guestTok;
+      const res = await fetch('/api/analyze-sentiment', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ chatId: id })\n      });
+      const data = await res.json();
+      if (data.success && data.sentiment) {
+        setSentiment(data.sentiment);
+      }
+    } catch (err) {
+      console.error('Sentiment analizi alınamadı:', err);
+    } finally {
+      setIsSentimentLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchChatDetails();
   }, [fetchChatDetails]);
 
-  // AI Sentiment fetch
-  useEffect(() => {
-    if (!chatId || isLoading) return;
-
-    if (chatId === 'demo') {
-      setSentiment(chatAnalyticsData.sentiment as any);
-      setIsSentimentLoading(false);
-      return;
-    }
-
-    const fetchSentiment = async () => {
-      setIsSentimentLoading(true);
-      try {
-        const clientOwnerToken = getClientOwnerToken();
-        const guestSession = getClientGuestSession(chatId);
-        const guestToken = guestSession?.sessionToken || '';
-
-        const headers: Record<string, string> = {};
-        if (clientOwnerToken) headers['x-owner-token'] = clientOwnerToken;
-        if (guestToken) headers['x-guest-token'] = guestToken;
-
-        const res = await fetch(`/api/analyze-sentiment?chatId=${chatId}`, { headers });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.sentiment) {
-            setSentiment(data.sentiment);
-          }
-        }
-      } catch (err) {
-        console.warn('Sentiment analizi yüklenemedi:', err);
-      } finally {
-        setIsSentimentLoading(false);
-      }
-    };
-
-    fetchSentiment();
-  }, [chatId, isLoading]);
-
   const handleReAnalyze = async () => {
-    const clientOwnerToken = getClientOwnerToken();
-    const guestSession = getClientGuestSession(chatId);
-    const guestToken = guestSession?.sessionToken || '';
-
-    const headers: Record<string, string> = {};
-    if (clientOwnerToken) headers['x-owner-token'] = clientOwnerToken;
-    if (guestToken) headers['x-guest-token'] = guestToken;
-
+    if (!chatId || !ownerToken) return;
     const res = await fetch(`/api/chats/${chatId}/analyze`, {
       method: 'POST',
-      headers,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ownerToken }),
     });
-
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.error || 'Yeniden analiz başarısız.');
+      throw new Error(data.error || 'Analiz yenilenemedi.');
     }
     setAnalysisData(data.analysis);
     if (data.analysis?.metrics) {
@@ -326,7 +338,6 @@ export default function ChatDashboardPage() {
           onOpenOwnerControls={() => setIsOwnerModalOpen(true)}
           onOpenUpdate={() => setIsUpdateModalOpen(true)}
           onOpenDelete={() => setIsDeleteModalOpen(true)}
-          onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
         />
 
         {/* Sticky 7-section navigation */}
@@ -334,42 +345,35 @@ export default function ChatDashboardPage() {
 
         {/* 01 — Genel Bakış */}
         <DashboardSection id="genel">
-          <OverviewScoreCard
-            compatibilityScores={compatibilityScoresData}
-            summary={fullAnalysisForStory.summary}
-            user1={user1}
-            user2={user2}
+          <StatCard
+            title="TOPLAM MESAJ"
+            value={formatNumber(effectiveMetrics.totalMessages)}
+            subtitle={`${effectiveMetrics.daysCount} günlük sohbet dönemi`}
+            badge={`${user1.name} & ${user2.name}`}
+            isHero={true}
           />
+          <OverviewScoreCard
+            scores={compatibilityScoresData}
+            chatHealth={effectiveMetrics.chatHealth || effectiveMetrics.insightBundle?.chatHealth}
+            user1Name={user1.name}
+            user2Name={user2.name}
+          />
+          <ChangeAnalysisCard changeAnalysis={effectiveMetrics.changeAnalysis} />
         </DashboardSection>
 
-        {/* 02 — Hacim & Yoğunluk */}
-        <DashboardSection id="hacim">
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard
-              title="Toplam Mesaj"
-              value={formatNumber(effectiveMetrics.totalMessages)}
-              subtitle={`Günlük ortalama ${formatNumber(effectiveMetrics.dailyAverage)} mesaj`}
-            />
-            <StatCard
-              title="Toplam Gün"
-              value={`${effectiveMetrics.daysCount} Gün`}
-              subtitle={`${effectiveMetrics.startDate} — ${effectiveMetrics.endDate}`}
-            />
-          </div>
-
+        {/* 02 — Kim Nasıl Konuşuyor? */}
+        <DashboardSection id="dinamikler">
           <ConversationDynamicsHub
             user1={user1}
             user2={user2}
-            initiationStats={
-              effectiveMetrics.initiationStats || effectiveMetrics.insightBundle?.initiation
+            totalMessages={effectiveMetrics.totalMessages}
+            dynamics={effectiveMetrics.conversationDynamics}
+            initiation={effectiveMetrics.initiationStats}
+            enhancedResponseTimes={effectiveMetrics.enhancedResponseTimes}
+            messageLengthStats={
+              effectiveMetrics.messageLengthStats || effectiveMetrics.insightBundle?.messageLength
             }
-          />
-          <ChangeAnalysisCard
-            changeAnalysis={
-              effectiveMetrics.changeAnalysis || effectiveMetrics.insightBundle?.changeAnalysis
-            }
-            user1={user1}
-            user2={user2}
+            userNames={[user1.name, user2.name]}
           />
         </DashboardSection>
 
@@ -440,13 +444,12 @@ export default function ChatDashboardPage() {
 
       </div>
 
-      {/* [YENİ] Sohbetinle Konuş (AI Asistanı - PRO Özel) */}
+      {/* [YENİ] Sohbetinle Konuş (AI Asistanı) */}
       <AskChatAiModal
         isOpen={isAskAiOpen}
         onClose={() => setIsAskAiOpen(false)}
         chatId={chatData.id}
         chatTitle={chatData.title}
-        onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
       />
 
       {/* [YENİ] QR Kod ile Giriş & Paylaş Modal */}
@@ -476,13 +479,6 @@ export default function ChatDashboardPage() {
           setIsWrappedOpen(false);
           setIsPdfOpen(true);
         }}
-        onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
-      />
-
-      {/* License / PRO Upgrade Modal */}
-      <LicenseModal
-        isOpen={isLicenseModalOpen}
-        onClose={() => setIsLicenseModalOpen(false)}
       />
 
       {/* PDF Exporter Modal */}

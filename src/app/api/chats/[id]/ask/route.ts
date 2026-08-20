@@ -77,14 +77,12 @@ export async function POST(
       // 1. Verify Access via central guard
       const { chat: chatRow } = await assertChatAccess(supabase, id, { ownerToken, guestToken });
 
-      const isProHeader = req.headers.get('x-is-pro') === 'true' || body.isPro === true;
-
-      // 2. Atomic Question Count Reservation / Check (Pro kullanıcılar sınırsızdır)
+      // 2. Atomic Question Count Reservation / Check
       serverAskCount = typeof (chatRow as any).ask_count === 'number' ? (chatRow as any).ask_count : 0;
-      if (!isProHeader && serverAskCount >= MAX_QUESTIONS_PER_CHAT) {
+      if (serverAskCount >= MAX_QUESTIONS_PER_CHAT) {
         return NextResponse.json(
           {
-            error: `Yapay zeka asistanı PRO üyelere özeldir. Lütfen PRO'ya geçin.`,
+            error: `Soru limitiniz doldu (${MAX_QUESTIONS_PER_CHAT}/${MAX_QUESTIONS_PER_CHAT}). Her sohbet için maksimum 5 soru sorabilirsiniz.`,
             limitReached: true,
             remainingQuestions: 0,
             maxQuestions: MAX_QUESTIONS_PER_CHAT,
@@ -358,7 +356,7 @@ export async function POST(
     return NextResponse.json({
       answer,
       factsUsed,
-      remainingQuestions: isProHeader ? 999 : Math.max(0, MAX_QUESTIONS_PER_CHAT - newAskCount),
+      remainingQuestions: Math.max(0, MAX_QUESTIONS_PER_CHAT - newAskCount),
       maxQuestions: MAX_QUESTIONS_PER_CHAT,
       questionCount: newAskCount,
     });

@@ -175,7 +175,7 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
                 Sohbetinizi Yükleyin
               </h2>
               <p className="text-xs sm:text-sm text-[#94A3B8] font-sans mt-1">
-                WhatsApp'tan <strong>"Medyasız"</strong> dışa aktardığınız sohbet dosyasını yükleyin.
+                WhatsApp'tan <strong>\"Medyasız\"</strong> dışa aktardığınız sohbet dosyasını yükleyin.
               </p>
             </div>
 
@@ -212,7 +212,7 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
                   <span className="w-5 h-5 rounded-lg bg-[#38BDF8]/20 text-sky-400 flex items-center justify-center text-xs font-sans font-bold">2</span>
                   <span>Dışa Aktar</span>
                 </div>
-                <p className="text-[11px] text-[#94A3B8] leading-tight">En alttan <strong>"Medyasız"</strong> seçin.</p>
+                <p className="text-[11px] text-[#94A3B8] leading-tight">En alttan <strong>\"Medyasız\"</strong> seçin.</p>
               </div>
 
               <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
@@ -389,8 +389,8 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
                 <RefreshCw className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-base font-bold text-white">Artımlı Güncelleme & AI Asistanı</h4>
-                <span className="text-xs text-sky-400 font-medium">Delta Tracker • PRO Sınırsız AI</span>
+                <h4 className="text-base font-bold text-white">Artımlı Güncelleme & AI Soru Sorma</h4>
+                <span className="text-xs text-sky-400 font-medium">Delta Tracker • Akıllı Asistan</span>
               </div>
             </div>
             <p className="text-xs text-[#94A3B8] leading-relaxed font-sans pt-1">

@@ -1,13 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { X, Download, Pause, Share2, Crown, Lock, ArrowRight } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { X, Download, Pause, Share2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { WrappedSlideData } from '@/lib/ai/types';
 import { WrappedSlide } from './WrappedSlide';
-import { getLicenseInfo } from '@/lib/utils/license';
-import { Button } from '../ui/Button';
 
 interface WrappedViewerProps {
   isOpen: boolean;
@@ -15,11 +13,9 @@ interface WrappedViewerProps {
   slides: WrappedSlideData[];
   chatTitle: string;
   onOpenPdf: () => void;
-  onOpenLicenseModal?: () => void;
 }
 
 const SLIDE_DURATION = 7000;
-const FREE_MAX_SLIDES = 5;
 
 export const WrappedViewer: React.FC<WrappedViewerProps> = ({
   isOpen,
@@ -27,27 +23,15 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
   slides,
   chatTitle,
   onOpenPdf,
-  onOpenLicenseModal,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [isPro, setIsPro] = useState(false);
 
   const requestRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const pausedTimeRef = useRef<number>(0);
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      const info = getLicenseInfo();
-      setIsPro(info.isPro);
-    }
-  }, [isOpen]);
-
-  const totalVisibleSlides = isPro ? slides.length : Math.min(slides.length, FREE_MAX_SLIDES) + (slides.length > FREE_MAX_SLIDES ? 1 : 0);
-  const isCurrentSlideLocked = !isPro && currentIndex === FREE_MAX_SLIDES && slides.length > FREE_MAX_SLIDES;
 
   const triggerConfetti = () => {
     try {
@@ -63,7 +47,7 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
   };
 
   const nextSlide = useCallback(() => {
-    if (currentIndex < totalVisibleSlides - 1) {
+    if (currentIndex < slides.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setProgress(0);
       startTimeRef.current = null;
@@ -71,7 +55,7 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
     } else {
       onClose();
     }
-  }, [currentIndex, totalVisibleSlides, onClose]);
+  }, [currentIndex, slides.length, onClose]);
 
   const prevSlide = useCallback(() => {
     if (currentIndex > 0) {
@@ -84,11 +68,11 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      if (currentIndex === 0 || currentIndex === 3 || currentIndex === totalVisibleSlides - 1) {
+      if (currentIndex === 0 || currentIndex === 3 || currentIndex === slides.length - 1) {
         triggerConfetti();
       }
     }
-  }, [currentIndex, isOpen, totalVisibleSlides]);
+  }, [currentIndex, isOpen, slides.length]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -109,7 +93,7 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
   }, [isOpen, nextSlide, prevSlide, onClose]);
 
   useEffect(() => {
-    if (!isOpen || isPaused || isCurrentSlideLocked || slides.length === 0) return;
+    if (!isOpen || isPaused || slides.length === 0) return;
 
     const animate = (time: number) => {
       if (!startTimeRef.current) startTimeRef.current = time - pausedTimeRef.current;
@@ -130,7 +114,7 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [isOpen, isPaused, currentIndex, nextSlide, slides.length, isCurrentSlideLocked]);
+  }, [isOpen, isPaused, currentIndex, nextSlide, slides.length]);
 
   const handlePointerDown = () => {
     holdTimerRef.current = setTimeout(() => {
@@ -171,7 +155,7 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
 
   if (!isOpen || slides.length === 0) return null;
 
-  const currentSlide = slides[Math.min(currentIndex, slides.length - 1)];
+  const currentSlide = slides[currentIndex];
 
   return (
     <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center p-0 sm:p-4 select-none font-sans">
@@ -188,7 +172,7 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
           
           {/* Progress Indicators Bar */}
           <div className="flex gap-1.5 w-full">
-            {Array.from({ length: totalVisibleSlides }).map((_, idx) => (
+            {slides.map((_, idx) => (
               <div
                 key={idx}
                 className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden"
@@ -200,7 +184,7 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
                       idx < currentIndex
                         ? '100%'
                         : idx === currentIndex
-                        ? `${isCurrentSlideLocked ? 100 : progress}%`
+                        ? `${progress}%`
                         : '0%',
                   }}
                 />
@@ -215,7 +199,7 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
                 {chatTitle}
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#141414] text-[#7DD3FC] border border-[#38BDF8]/30 font-sans">
-                {currentIndex + 1}/{totalVisibleSlides}
+                {currentIndex + 1}/{slides.length}
               </span>
             </div>
 
@@ -260,89 +244,31 @@ export const WrappedViewer: React.FC<WrappedViewerProps> = ({
         {/* Slide Content */}
         <div className="relative flex-1 w-full h-full flex items-center justify-center">
           <AnimatePresence mode="wait">
-            {isCurrentSlideLocked ? (
-              /* GATED PRO STORY CARD */
-              <motion.div
-                key="locked-pro-slide"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full h-full p-6 flex flex-col justify-center items-center text-center space-y-6 bg-gradient-to-b from-slate-950 via-slate-900 to-black relative z-10"
-              >
-                <div className="w-16 h-16 rounded-3xl bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)]">
-                  <Crown className="w-8 h-8 fill-amber-300" />
-                </div>
-
-                <div className="space-y-2 max-w-xs">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs border border-amber-500/30 uppercase tracking-wider">
-                    <Lock className="w-3.5 h-3.5" />
-                    Kalan Slaytlar Kilitli
-                  </span>
-                  <h3 className="text-2xl font-extrabold text-white">
-                    Trip, Dedikodu & Gizli Uyum Slaytlarını Aç
-                  </h3>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Sohbetinizin en hararetli tartışma anlarını, psikolojik rollerini ve özel unvanlarını görmek için PRO'ya geçin.
-                  </p>
-                </div>
-
-                <div className="w-full space-y-2 pt-2">
-                  <Button
-                    variant="blue"
-                    className="w-full font-bold text-sm py-3.5 shadow-glow-blue flex items-center justify-center gap-2"
-                    onClick={() => {
-                      onClose();
-                      if (onOpenLicenseModal) onOpenLicenseModal();
-                    }}
-                  >
-                    <Crown className="w-4 h-4 text-black fill-black" />
-                    <span>Tüm Slaytları Aç (₺49)</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      if (onOpenLicenseModal) onOpenLicenseModal();
-                    }}
-                    className="text-xs text-slate-400 hover:text-white transition-colors block mx-auto pt-1"
-                  >
-                    Lisans anahtarım var
-                  </button>
-                </div>
-              </motion.div>
-            ) : (
-              <WrappedSlide
-                key={`slide-${currentSlide.id || currentIndex}`}
-                slide={currentSlide}
-                isActive={true}
-              />
-            )}
+            <WrappedSlide
+              key={`slide-${currentSlide?.id || currentIndex}`}
+              slide={currentSlide}
+              isActive={true}
+            />
           </AnimatePresence>
         </div>
 
         {/* Left / Right Invisible Tap Areas */}
-        {!isCurrentSlideLocked && (
-          <>
-            <div
-              className="absolute inset-y-16 left-0 w-1/3 z-20 cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                prevSlide();
-              }}
-              title="Önceki Slayt"
-            />
-            <div
-              className="absolute inset-y-16 right-0 w-2/3 z-20 cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                nextSlide();
-              }}
-              title="Sonraki Slayt"
-            />
-          </>
-        )}
+        <div
+          className="absolute inset-y-16 left-0 w-1/3 z-20 cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            prevSlide();
+          }}
+          title="Önceki Slayt"
+        />
+        <div
+          className="absolute inset-y-16 right-0 w-2/3 z-20 cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            nextSlide();
+          }}
+          title="Sonraki Slayt"
+        />
 
         {/* Bottom Pause Bar */}
         <div className="absolute bottom-3 inset-x-0 z-30 flex items-center justify-center pointer-events-none text-white/50 text-[11px]">
