@@ -8,27 +8,32 @@ import { Button } from '../ui/Button';
 interface BentoHeroProps {
   onUploadClick: () => void;
   onDemoClick: () => void;
+  onOpenGuide?: () => void;
   isDemoLoading: boolean;
 }
 
 export const BentoHero: React.FC<BentoHeroProps> = ({
   onUploadClick,
   onDemoClick,
+  onOpenGuide,
   isDemoLoading,
 }) => {
   const [activeAwardIndex, setActiveAwardIndex] = useState(0);
 
   const awards = [
-    { title: 'Gece Kuşu 🦉', winner: 'Ahmet', detail: '00:00 - 05:00 arası 142 mesaj', icon: '🌙', stat: '142 Mesaj' },
-    { title: 'Grup Hayaleti 👻', winner: 'Mehmet', detail: 'Ortalama 3 iş gününde yanıt', icon: '🫥', stat: '42 dk ort.' },
-    { title: 'Jet Yanıtçı ⚡', winner: 'Zeynep', detail: 'Ortalama 1.2 dakikada jet dönüş', icon: '🏎️', stat: '1.2 dk' },
-    { title: 'Konu Açan ☕', winner: 'Elif', detail: 'Sessizliği 18 kez bombayla bozdu', icon: '📢', stat: '18 kez' },
+    { title: 'Trip Şampiyonu 🎭', winner: 'Selin', detail: '142x "tm", "ok" ve tek kelimelik mesafe ustası', icon: '🧊', stat: '%68 Mesafe' },
+    { title: 'Dedikodu Bakanı ☕', winner: 'Elif', detail: 'Sessizliği 4 dakikalık bomba ses kaydıyla bozar', icon: '🎙️', stat: '28 Bomba' },
+    { title: 'Gece Kuşu 🦉', winner: 'Ahmet', detail: '00:00 - 05:00 nöbetinde 340 gece mesajı', icon: '🌙', stat: '340 Mesaj' },
+    { title: 'Jargon Ustası 📖', winner: 'Doğukan', detail: 'Grupta 12 yeni kelime ve kalıp üretti', icon: '✍️', stat: '12 Jargon' },
+    { title: 'Grup Hayaleti 👻', winner: 'Mehmet', detail: 'Ortalama 3 iş gününde "gördüm ya" yanıtı', icon: '🫥', stat: '42 dk ort.' },
+    { title: 'Jet Yanıtçı ⚡', winner: 'Zeynep', detail: 'Ortalama 45 saniyede anında jet dönüş', icon: '🏎️', stat: '45 sn ort.' },
+    { title: 'Konu Açan 📢', winner: 'Can', detail: 'Sessizliği 32 kez yeni geyikle başlattı', icon: '🔥', stat: '32 Oturum' },
   ];
 
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveAwardIndex((prev) => (prev + 1) % awards.length);
-    }, 2800);
+    }, 2600);
     return () => clearInterval(interval);
   }, [awards.length]);
 
@@ -44,12 +49,12 @@ export const BentoHero: React.FC<BentoHeroProps> = ({
         <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.04] border border-[#38BDF8]/30 shadow-glow-blue backdrop-blur-md">
           <span className="w-2 h-2 rounded-full bg-[#38BDF8] animate-pulse" />
           <span className="text-xs font-mono font-semibold tracking-wider text-[#7DD3FC] uppercase">
-            WHATS 2026 ✦ Sohbet Zekası & Wrapped
+            WHATS 2026 ✦ Yapay Zeka Sohbet Zekası & Wrapped
           </span>
         </div>
 
         {/* Headline: Clean Modern Sans + ONLY the blue word in Caveat handwriting */}
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.2]">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.15]">
           Sohbetinizin gizli dünyasını ve <br className="hidden sm:inline" />
           <span className="text-[#38BDF8] font-caveat font-bold text-5xl sm:text-6xl lg:text-7xl tracking-normal decoration-[#38BDF8]/40 underline underline-offset-8 inline-block px-1">
             ikonik karakterlerini
@@ -59,11 +64,11 @@ export const BentoHero: React.FC<BentoHeroProps> = ({
 
         {/* Subtitle */}
         <p className="text-sm sm:text-base text-[#94A3B8] max-w-xl font-sans leading-relaxed">
-          Arkadaş grubunuzun WhatsApp dışa aktarımını yükleyin. Yapay zeka destekli kişilik ödülleri, konuşma ritmi ve Spotify Wrapped tarzı tam ekran Story deneyimiyle grup geyiklerini ölümsüzleştirin.
+          WhatsApp sohbetinizi yükleyin. Kimin trip attığını, kimin geceleri nöbet tuttuğunu ve grubun imza geyiklerini Spotify Wrapped tarzı tam ekran Story formatında anında görün!
         </p>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-4 flex-wrap pt-1">
+        <div className="flex items-center gap-3 sm:gap-4 flex-wrap pt-1">
           <Button
             variant="blue"
             size="lg"
@@ -82,8 +87,19 @@ export const BentoHero: React.FC<BentoHeroProps> = ({
             className="text-sm sm:text-base px-6 py-3.5 hover:border-[#38BDF8]"
           >
             <Play className="w-4 h-4 text-[#38BDF8] fill-[#38BDF8]" />
-            <span>Canlı Demo Sohbeti Gör</span>
+            <span>Canlı Demo Gör</span>
           </Button>
+
+          {onOpenGuide && (
+            <button
+              type="button"
+              onClick={onOpenGuide}
+              className="px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-[#94A3B8] hover:text-white transition-all font-mono flex items-center gap-1.5"
+            >
+              <span>Nasıl Yüklenir?</span>
+              <span className="text-[#38BDF8] font-bold">3 Adım ➔</span>
+            </button>
+          )}
         </div>
 
         {/* Micro-proof Metrics */}

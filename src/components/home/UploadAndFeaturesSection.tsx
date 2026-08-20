@@ -22,6 +22,7 @@ interface UploadAndFeaturesSectionProps {
   isLimitReached: boolean;
   onSuccess: (chatId: string) => void;
   onOpenLimitModal: () => void;
+  onOpenGuide?: () => void;
 }
 
 export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> = ({
@@ -29,6 +30,7 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
   isLimitReached,
   onSuccess,
   onOpenLimitModal,
+  onOpenGuide,
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [displayFileName, setDisplayFileName] = useState<string>('');
@@ -157,22 +159,70 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
     <section id="upload-hub" className="scroll-mt-24">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* SOL: Yükleme İstasyonu (Upload Box) */}
-        <div className="lg:col-span-7 rounded-3xl bg-[#11141A] border border-white/10 p-6 sm:p-8 shadow-2xl space-y-5 relative overflow-hidden">
+        {/* SOL: Yükleme İstasyonu & 3 Adımlı Rehber (Upload Box) */}
+        <div className="lg:col-span-7 rounded-3xl bg-[#11141A] border border-white/10 p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden">
           
           {/* Ambient Top Glow */}
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#38BDF8] to-transparent opacity-80" />
 
-          <div>
-            <span className="w-10 h-10 rounded-2xl bg-[#0284C7]/20 border border-[#38BDF8]/30 text-[#38BDF8] inline-flex items-center justify-center font-emoji text-xl shadow-glow-blue mb-2">
-              💬✨
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              Sohbetinizi Yükleyin
-            </h2>
-            <p className="text-xs sm:text-sm text-[#94A3B8] font-sans mt-1">
-              WhatsApp uygulamasından <strong>"Sohbeti Dışa Aktar"</strong> (.txt veya iPhone .zip) ile aldığınız dosyayı bırakın.
-            </p>
+          {/* Header & Step Guide Trigger */}
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <span className="w-10 h-10 rounded-2xl bg-[#0284C7]/20 border border-[#38BDF8]/30 text-[#38BDF8] inline-flex items-center justify-center font-emoji text-xl shadow-glow-blue mb-2">
+                💬✨
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                Sohbetinizi Yükleyin
+              </h2>
+              <p className="text-xs sm:text-sm text-[#94A3B8] font-sans mt-1">
+                WhatsApp'tan <strong>"Medyasız"</strong> dışa aktardığınız sohbet dosyasını yükleyin.
+              </p>
+            </div>
+
+            {onOpenGuide && (
+              <button
+                type="button"
+                onClick={onOpenGuide}
+                className="shrink-0 px-3 py-2 rounded-xl bg-[#38BDF8]/10 hover:bg-[#38BDF8]/20 border border-[#38BDF8]/30 text-xs font-bold text-[#38BDF8] transition-all flex items-center gap-1.5 font-mono shadow-sm"
+              >
+                <span>Nasıl Yapılır?</span>
+                <span>📱</span>
+              </button>
+            )}
+          </div>
+
+          {/* 3-Step Mini Onboarding Strip */}
+          <div className="p-3.5 rounded-2xl bg-[#0B0D11] border border-white/10 space-y-2.5">
+            <div className="flex items-center justify-between text-[11px] font-mono text-[#38BDF8] font-bold uppercase tracking-wider">
+              <span>3 Adımda Hızlı Başlangıç</span>
+              <span className="text-[#64748B] font-normal">Sıfır Kurulum</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                <div className="flex items-center gap-1.5 text-white font-bold">
+                  <span className="w-5 h-5 rounded-lg bg-[#38BDF8]/20 text-[#38BDF8] flex items-center justify-center text-[10px] font-mono font-black">1</span>
+                  <span>Sohbeti Açın</span>
+                </div>
+                <p className="text-[11px] text-[#94A3B8] leading-tight">WhatsApp'ta kişi veya grup ismine dokunun.</p>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                <div className="flex items-center gap-1.5 text-white font-bold">
+                  <span className="w-5 h-5 rounded-lg bg-[#38BDF8]/20 text-[#38BDF8] flex items-center justify-center text-[10px] font-mono font-black">2</span>
+                  <span>Dışa Aktar</span>
+                </div>
+                <p className="text-[11px] text-[#94A3B8] leading-tight">En alttan <strong>"Medyasız"</strong> seçin.</p>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                <div className="flex items-center gap-1.5 text-white font-bold">
+                  <span className="w-5 h-5 rounded-lg bg-[#38BDF8]/20 text-[#38BDF8] flex items-center justify-center text-[10px] font-mono font-black">3</span>
+                  <span>Buraya Bırakın</span>
+                </div>
+                <p className="text-[11px] text-[#94A3B8] leading-tight">.txt veya .zip dosyasını seçin.</p>
+              </div>
+            </div>
           </div>
 
           {/* Drag & Drop Zone */}
@@ -248,7 +298,7 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
               type="text"
               value={customTitle}
               onChange={(e) => setCustomTitle(e.target.value)}
-              placeholder="Örn: Hafta Sonu Çetesi 🍕"
+              placeholder="Örn: Hafta Sonu Çetesi 🍕 veya nisa & Doğukan 🤍"
               className="w-full text-xs sm:text-sm bg-[#0B0D11] border border-white/10 rounded-2xl px-4 py-3 text-white placeholder-[#64748B] focus:outline-none focus:border-[#38BDF8] transition-colors"
             />
           </div>
@@ -276,7 +326,7 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
           {/* Trust Guarantee */}
           <div className="pt-3 border-t border-white/10 flex items-center justify-center gap-2 text-xs text-[#94A3B8]">
             <ShieldCheck className="w-4 h-4 text-[#38BDF8]" />
-            <span>Verileriniz güvendedir — ham mesajlar sunucuya kaydedilmez.</span>
+            <span>Verileriniz güvendedir — ham mesaj metinleri sunucuya kaydedilmez.</span>
           </div>
 
         </div>
@@ -292,7 +342,7 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
               </div>
               <div>
                 <h4 className="text-base font-bold text-white">Spotify Wrapped Tarzı Story</h4>
-                <span className="text-[11px] text-[#38BDF8] font-mono">Tam Ekran & PDF Albümü</span>
+                <span className="text-[11px] text-[#38BDF8] font-mono">7 İnteraktif Slayt & PDF Albümü</span>
               </div>
             </div>
             <p className="text-xs text-[#94A3B8] leading-relaxed font-sans pt-1">
@@ -307,12 +357,12 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
                 <Trophy className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-base font-bold text-white">Grup Kişilik Ödülleri</h4>
-                <span className="text-[11px] text-[#38BDF8] font-mono">Gece Kuşu 🦉 • Hayalet 👻 • Jet ⚡</span>
+                <h4 className="text-base font-bold text-white">Grup Kişilik & Geyik Ödülleri</h4>
+                <span className="text-[11px] text-[#38BDF8] font-mono">Trip Şampiyonu 🎭 • Dedikodu ☕ • Hayalet 👻</span>
               </div>
             </div>
             <p className="text-xs text-[#94A3B8] leading-relaxed font-sans pt-1">
-              Yapay zekamız kimin geç cevap verdiğini, kimin geceleri yazdığını ve kimin paragraflara doyamadığını hesaplayıp unvanlarını dağıtır.
+              Yapay zekamız kimin geç cevap verdiğini, kimin geceleri nöbet tuttuğunu ve kimin trip attığını hesaplayıp unvanlarını dağıtır.
             </p>
           </div>
 
@@ -339,8 +389,8 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
                 <RefreshCw className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-base font-bold text-white">Artımlı Sohbet Güncelleme</h4>
-                <span className="text-[11px] text-[#38BDF8] font-mono">Incremental Delta Tracker</span>
+                <h4 className="text-base font-bold text-white">Artımlı Güncelleme & AI Soru Sorma</h4>
+                <span className="text-[11px] text-[#38BDF8] font-mono">Delta Tracker • 5 Soru Limitli AI</span>
               </div>
             </div>
             <p className="text-xs text-[#94A3B8] leading-relaxed font-sans pt-1">

@@ -2,58 +2,30 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, Copy, Check } from 'lucide-react';
+import { Play, HelpCircle } from 'lucide-react';
 import { getClientOwnerToken } from '@/lib/utils/session';
 import { BentoHero } from '@/components/home/BentoHero';
 import { UploadAndFeaturesSection } from '@/components/home/UploadAndFeaturesSection';
 import { InteractiveFaq } from '@/components/home/InteractiveFaq';
-import { ChatList } from '@/components/home/ChatList';
-import { LimitWarningModal } from '@/components/home/LimitWarningModal';
-import { DeleteChatModal } from '@/components/dashboard/DeleteChatModal';
+import { HowToExportGuideModal } from '@/components/home/HowToExportGuideModal';
 import { Button } from '@/components/ui/Button';
 
 export default function HomePage() {
   const router = useRouter();
   const [ownerToken, setOwnerToken] = useState<string>('');
-  const [chats, setChats] = useState<any[]>([]);
-  const [isLoadingChats, setIsLoadingChats] = useState(true);
-  const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
   const [isDemoLoading, setIsDemoLoading] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
-  const [copiedKey, setCopiedKey] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   useEffect(() => {
     const token = getClientOwnerToken();
     setOwnerToken(token);
-    fetchChats(token);
   }, []);
-
-  const fetchChats = async (token: string) => {
-    if (!token) return;
-    setIsLoadingChats(true);
-    try {
-      const res = await fetch(`/api/chats?owner_token=${token}`);
-      if (res.ok) {
-        const data = await res.json();
-        setChats(data.chats || []);
-      }
-    } catch (err) {
-      console.error('Sohbetler alınamadı:', err);
-    } finally {
-      setIsLoadingChats(false);
-    }
-  };
 
   const handleUploadSuccess = (chatId: string) => {
     router.push(`/chat/${chatId}`);
   };
 
   const handleCreateDemo = async () => {
-    if (chats.length >= 2) {
-      setIsLimitModalOpen(true);
-      return;
-    }
-
     setIsDemoLoading(true);
     try {
       const res = await fetch('/api/chats/demo', {
@@ -66,21 +38,11 @@ export default function HomePage() {
 
       if (res.ok && data.chat?.id) {
         router.push(`/chat/${data.chat.id}`);
-      } else if (data.limitReached) {
-        setIsLimitModalOpen(true);
       }
     } catch (err) {
       console.error('Demo oluşturulamadı:', err);
     } finally {
       setIsDemoLoading(false);
-    }
-  };
-
-  const handleCopyKey = () => {
-    if (ownerToken) {
-      navigator.clipboard.writeText(ownerToken);
-      setCopiedKey(true);
-      setTimeout(() => setCopiedKey(false), 2000);
     }
   };
 
@@ -113,7 +75,15 @@ export default function HomePage() {
           </div>
 
           {/* Nav Links & Actions */}
-          <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-3 sm:gap-6">
+            <button
+              type="button"
+              onClick={() => setIsGuideOpen(true)}
+              className="text-xs sm:text-sm text-[#94A3B8] hover:text-[#38BDF8] transition-colors flex items-center gap-1.5 font-medium"
+            >
+              <HelpCircle className="w-4 h-4 text-[#38BDF8]" />
+              <span>Nasıl Kullanılır?</span>
+            </button>
             <a
               href="#upload-hub"
               className="text-xs sm:text-sm text-[#94A3B8] hover:text-white transition-colors hidden md:inline"
@@ -158,50 +128,30 @@ export default function HomePage() {
         <BentoHero
           onUploadClick={scrollToUpload}
           onDemoClick={handleCreateDemo}
+          onOpenGuide={() => setIsGuideOpen(true)}
           isDemoLoading={isDemoLoading}
         />
 
         {/* 2. Side-by-Side: Yükleme (Solda) + Özellikler (Sağda) */}
         <UploadAndFeaturesSection
           ownerToken={ownerToken}
-          isLimitReached={chats.length >= 2}
+          isLimitReached={false}
           onSuccess={handleUploadSuccess}
-          onOpenLimitModal={() => setIsLimitModalOpen(true)}
+          onOpenLimitModal={() => {}}
+          onOpenGuide={() => setIsGuideOpen(true)}
         />
 
-        {/* 3. Saved Chats Section (if any exists) */}
-        {chats.length > 0 && (
-          <section className="p-6 sm:p-8 rounded-3xl bg-[#11141A] border border-white/10 space-y-6">
-            <ChatList
-              chats={chats}
-              onDeleteClick={(chat) => setDeleteTarget(chat)}
-            />
-
-            {/* Owner Key Recovery */}
-            <div className="p-4 bg-[#0B0D11] rounded-2xl border border-white/10 text-center max-w-md mx-auto">
-              <p className="text-[11px] text-[#94A3B8]">
-                🔑 <strong>Yönetici Anahtarınız:</strong> Tarayıcınızda kayıtlıdır. Farklı cihazda sohbetlerinizi açmak için kopyalayabilirsiniz.
-              </p>
-              <div className="flex items-center justify-center gap-2 mt-2">
-                <span className="text-[10px] font-mono bg-[#161B22] px-2.5 py-1 rounded text-[#38BDF8] border border-white/10 truncate max-w-[200px]">
-                  {ownerToken}
-                </span>
-                <button
-                  onClick={handleCopyKey}
-                  className="text-[11px] font-semibold text-[#38BDF8] hover:underline flex items-center gap-1"
-                >
-                  {copiedKey ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedKey ? 'Kopyalandı' : 'Kopyala'}</span>
-                </button>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* 4. Interactive Accordion FAQ */}
+        {/* 3. Interactive Accordion FAQ */}
         <InteractiveFaq />
 
       </div>
+
+      {/* 3-Step WhatsApp Export Guide Modal */}
+      <HowToExportGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        onReadyToUpload={scrollToUpload}
+      />
 
       {/* Footer */}
       <footer className="border-t border-white/10 bg-[#050608] py-12 mt-28 relative z-10">
@@ -213,24 +163,6 @@ export default function HomePage() {
           <p>© 2026 WHATS. Arkadaş grupları için tasarlanmıştır.</p>
         </div>
       </footer>
-
-      {/* Limit Modal */}
-      <LimitWarningModal
-        isOpen={isLimitModalOpen}
-        onClose={() => setIsLimitModalOpen(false)}
-      />
-
-      {/* Delete Confirmation Modal */}
-      {deleteTarget && (
-        <DeleteChatModal
-          isOpen={!!deleteTarget}
-          onClose={() => setDeleteTarget(null)}
-          chatId={deleteTarget.id}
-          chatTitle={deleteTarget.title}
-          ownerToken={ownerToken}
-          onSuccess={() => fetchChats(ownerToken)}
-        />
-      )}
 
     </main>
   );
