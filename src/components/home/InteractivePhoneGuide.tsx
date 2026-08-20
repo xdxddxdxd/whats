@@ -30,7 +30,7 @@ interface InteractivePhoneGuideProps {
   onUploadClick?: () => void;
 }
 
-// Gentle translucent finger tap ripple effect for natural demo feel
+// Gentle translucent finger tap ripple effect
 const TapRipple: React.FC<{ className?: string }> = ({ className = '' }) => (
   <motion.div
     initial={{ scale: 0.3, opacity: 0.95 }}
@@ -82,7 +82,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
           Sohbetinizi Nasıl Dışa Aktarırsınız?
         </h2>
         <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-          {platform === 'android' ? 'Android' : 'iPhone (iOS)'} cihazınızdaki birebir kişi sohbeti dışa aktarma akışını canlı izleyin.
+          {platform === 'android' ? 'Android' : 'iPhone (iOS)'} cihazınızdaki dışa aktarma adımlarını kesintisiz canlı demodan izleyin.
         </p>
 
         {/* Platform Selection Tabs (Android vs iPhone) */}
@@ -164,7 +164,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
             <div className="flex-1 relative overflow-hidden flex flex-col z-10">
               
               {/* ========================================================================= */}
-              {/* 1. ANDROID 1-ON-1 CONTACT FLOW                                            */}
+              {/* 1. ANDROID FLOW (Doğukan - App Promo Chat)                                 */}
               {/* ========================================================================= */}
               {platform === 'android' && (
                 <div className="flex-1 flex flex-col justify-between relative">
@@ -173,13 +173,14 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                   <div className="bg-[#1F2C34] px-3 py-2 flex items-center justify-between border-b border-white/5 shrink-0 z-20 shadow-sm">
                     <div className="flex items-center gap-2.5">
                       <ChevronLeft className="w-4 h-4 text-slate-300" />
-                      <div className="w-8 h-8 rounded-full bg-[#A3704C] text-[#F3E5AB] font-bold text-xs flex items-center justify-center shadow-inner">
-                        MS
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-sky-600 to-teal-500 text-white font-bold text-xs flex items-center justify-center shadow-inner">
+                        D
                       </div>
                       <div>
                         <h5 className="text-[13px] font-semibold text-white leading-tight">
-                          merve sarıcıvciv
+                          Doğukan
                         </h5>
+                        <span className="text-[9px] text-emerald-400 block leading-tight">çevrimiçi</span>
                       </div>
                     </div>
 
@@ -195,35 +196,35 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                     </div>
                   </div>
 
-                  {/* Chat Messages Body */}
+                  {/* Chat Messages Body (App Promotional Content) */}
                   <div className="p-3 space-y-2 flex-1 overflow-hidden relative text-xs">
                     
                     {/* Received Message 1 */}
-                    <div className="bg-[#1F2C34] p-2 rounded-2xl rounded-tl-none max-w-[82%] text-slate-200 shadow-sm space-y-0.5">
-                      <p className="text-[11px] leading-relaxed">Ay gozukmuyo acaba yapmadım mı</p>
+                    <div className="bg-[#1F2C34] p-2 rounded-2xl rounded-tl-none max-w-[84%] text-slate-200 shadow-sm space-y-0.5">
+                      <p className="text-[11px] leading-relaxed">Kanka bu seneki WhatsApp özetimizi çıkardın mı?</p>
                       <span className="text-[8px] text-slate-400 block text-right">16:04</span>
                     </div>
 
                     {/* Sent with Quote */}
-                    <div className="bg-[#005C4B] p-2 rounded-2xl rounded-tr-none max-w-[82%] ml-auto text-white shadow-sm space-y-1">
+                    <div className="bg-[#005C4B] p-2 rounded-2xl rounded-tr-none max-w-[84%] ml-auto text-white shadow-sm space-y-1">
                       <div className="bg-[#025142] p-1.5 rounded-lg border-l-2 border-emerald-300 text-[9px] text-emerald-100">
-                        <span className="font-bold block text-emerald-200">Siz</span>
-                        <span>onda varmı</span>
+                        <span className="font-bold block text-emerald-200">Doğukan</span>
+                        <span>WhatsApp özetimizi çıkardın mı?</span>
                       </div>
-                      <p className="text-[11px]">Bılmıyom dedi</p>
+                      <p className="text-[11px]">WhatsBaba'ya yükledim, grupta en çok kim mesaj atmış hepsi çıktı 😂</p>
                       <span className="text-[8px] text-emerald-200 block text-right">16:04 ✓✓</span>
                     </div>
 
-                    {/* Sent 2 */}
-                    <div className="bg-[#005C4B] px-2.5 py-1.5 rounded-2xl rounded-tr-none max-w-[65%] ml-auto text-white shadow-sm flex items-center justify-between text-[11px]">
-                      <span>iki dakika</span>
-                      <span className="text-[8px] text-emerald-200 pl-2">16:04 ✓✓</span>
+                    {/* Received 2 */}
+                    <div className="bg-[#1F2C34] px-2.5 py-1.5 rounded-2xl rounded-tl-none max-w-[75%] text-slate-200 shadow-sm flex items-center justify-between text-[11px]">
+                      <span>Harbi mi kim şampiyon olmuş?</span>
+                      <span className="text-[8px] text-slate-400 pl-2">16:04</span>
                     </div>
 
                     {/* Sent 3 */}
-                    <div className="bg-[#005C4B] px-2.5 py-1.5 rounded-2xl rounded-tr-none max-w-[65%] ml-auto text-white shadow-sm flex items-center justify-between text-[11px]">
-                      <span>alıksındır</span>
-                      <span className="text-[8px] text-emerald-200 pl-2">16:04 ✓✓</span>
+                    <div className="bg-[#005C4B] px-2.5 py-1.5 rounded-2xl rounded-tr-none max-w-[84%] ml-auto text-white shadow-sm flex items-center justify-between text-[11px]">
+                      <span>Sen 'Trip Şampiyonu' ben 'Dedikodu Bakanı' ahaha</span>
+                      <span className="text-[8px] text-emerald-200 pl-2">16:05 ✓✓</span>
                     </div>
 
                     {/* ANDROID OVERLAY 1: Dropdown Menu (Phase 1) */}
@@ -340,7 +341,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
               )}
 
               {/* ========================================================================= */}
-              {/* 2. IPHONE (iOS) 1-ON-1 CONTACT FLOW (WITH SMOOTH SCROLL DOWN)             */}
+              {/* 2. IPHONE (iOS) FLOW (Doğukan - App Promo Chat & Green Export Button)       */}
               {/* ========================================================================= */}
               {platform === 'ios' && (
                 <div className="flex-1 flex flex-col justify-between relative bg-black">
@@ -364,12 +365,12 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
 
                         {/* Center: Tap Target for Contact Info */}
                         <div className="flex items-center gap-2 relative cursor-pointer">
-                          <div className="w-7 h-7 rounded-full bg-[#A3704C] text-[#F3E5AB] text-[10px] font-bold flex items-center justify-center">
-                            MS
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-sky-600 to-teal-500 text-white text-[10px] font-bold flex items-center justify-center">
+                            D
                           </div>
                           <div className="text-left">
                             <h5 className="text-xs font-bold text-white leading-tight">
-                              merve sarıcıvciv
+                              Doğukan
                             </h5>
                             <span className="text-[8.5px] text-slate-400 block leading-tight">
                               kişi bilgisi için dokunun
@@ -390,14 +391,19 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
 
                       {/* Chat Messages */}
                       <div className="p-3 space-y-2 flex-1 text-xs">
-                        <div className="bg-[#1C1C1E] p-2 rounded-2xl rounded-tl-none max-w-[80%] text-slate-200">
-                          <p className="text-[11px]">Ay gozukmuyo acaba yapmadım mı</p>
+                        <div className="bg-[#1C1C1E] p-2 rounded-2xl rounded-tl-none max-w-[82%] text-slate-200">
+                          <p className="text-[11px]">Kanka bu seneki WhatsApp özetimizi çıkardın mı?</p>
                           <span className="text-[8px] text-slate-400 block text-right">16:04</span>
                         </div>
 
-                        <div className="bg-[#3A2922] p-2 rounded-2xl rounded-tr-none max-w-[80%] ml-auto text-white">
-                          <p className="text-[11px]">bakaydı</p>
-                          <span className="text-[8px] text-slate-300 block text-right">16:04 ✓✓</span>
+                        <div className="bg-[#005C4B] p-2 rounded-2xl rounded-tr-none max-w-[82%] ml-auto text-white">
+                          <p className="text-[11px]">WhatsBaba'ya yükledim, grupta en çok mesaj atan sen çıktın 😂</p>
+                          <span className="text-[8px] text-emerald-200 block text-right">16:04 ✓✓</span>
+                        </div>
+
+                        <div className="bg-[#1C1C1E] p-2 rounded-2xl rounded-tl-none max-w-[82%] text-slate-200">
+                          <p className="text-[11px]">Nasıl dışa aktarılıyor göster de ben de bakayım</p>
+                          <span className="text-[8px] text-slate-400 block text-right">16:05</span>
                         </div>
                       </div>
 
@@ -438,17 +444,17 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                       <div className="flex-1 overflow-hidden p-3 relative">
                         <motion.div
                           initial={{ y: 0 }}
-                          animate={{ y: iosPhase === 2 ? -210 : 0 }}
+                          animate={{ y: iosPhase === 2 ? -220 : 0 }}
                           transition={{ duration: 1.5, ease: [0.25, 1, 0.5, 1] }}
                           className="space-y-2.5"
                         >
                           {/* Profile Avatar & Name */}
                           <div className="text-center space-y-1 py-1">
-                            <div className="w-16 h-16 rounded-full bg-[#A3704C] text-[#F3E5AB] text-2xl font-bold flex items-center justify-center mx-auto shadow-md">
-                              MS
+                            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-sky-600 to-teal-500 text-white text-2xl font-bold flex items-center justify-center mx-auto shadow-md">
+                              D
                             </div>
-                            <h4 className="text-xs font-bold text-white">merve sarıcıvciv</h4>
-                            <p className="text-[9.5px] text-slate-400">+90 551 639 33 69</p>
+                            <h4 className="text-xs font-bold text-white">Doğukan</h4>
+                            <p className="text-[9.5px] text-slate-400">+90 555 000 00 00</p>
                           </div>
 
                           {/* 3 Green Action Buttons */}
@@ -479,23 +485,27 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                             </div>
                           </div>
 
-                          {/* Ortak Gruplar */}
+                          {/* 2 Ortak Grup (Düzeltildi: Gerçek 2 grup listeleniyor) */}
                           <div className="text-[10px] text-slate-400 font-bold px-1 pt-1">2 ortak grup</div>
-                          <div className="bg-[#1C1C1E] rounded-2xl p-2.5 text-[10px] space-y-1">
+                          <div className="bg-[#1C1C1E] rounded-2xl p-2.5 text-[10px] space-y-2 divide-y divide-white/5">
                             <div className="flex items-center gap-2 text-white">
                               <Users className="w-3.5 h-3.5 text-pink-400" />
-                              <span>EFE KURS 2026 SINAV GRUBU</span>
+                              <span>Yazılımcılar & Girişimciler 💻</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-white pt-1.5">
+                              <Users className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Halı Saha Ekibi ⚽</span>
                             </div>
                           </div>
 
-                          {/* Actions List (Reached after scroll down in Phase 2) */}
+                          {/* Actions List (SOHBETİ DIŞA AKTAR YEŞİL YAPILDI!) */}
                           <div className="bg-[#1C1C1E] rounded-2xl divide-y divide-white/5 text-[11px]">
                             <div className="p-2.5 text-emerald-400">Kişiyi paylaş</div>
                             <div className="p-2.5 text-emerald-400">Favoriler'e ekle</div>
                             <div className="p-2.5 text-emerald-400">Listeye ekle</div>
                             
-                            {/* Sohbeti dışa aktar Option with Natural Tap on Phase 2 */}
-                            <div className="p-3 text-[#0A84FF] font-bold relative bg-white/5 flex items-center justify-between">
+                            {/* Sohbeti dışa aktar Option (iOS Orijinal Yeşil Renk) with Natural Tap on Phase 2 */}
+                            <div className="p-3 text-emerald-400 font-medium relative bg-white/5 flex items-center justify-between">
                               <span>Sohbeti dışa aktar</span>
                               {iosPhase === 2 && <TapRipple className="right-4 top-1" />}
                             </div>
@@ -504,7 +514,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                           </div>
 
                           <div className="bg-[#1C1C1E] rounded-2xl p-2.5 text-[10px] text-red-500 opacity-70">
-                            <div>merve sarıcıvciv kişisini engelle</div>
+                            <div>Doğukan kişisini engelle</div>
                           </div>
                         </motion.div>
                       </div>
@@ -546,7 +556,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                           </div>
 
                           {/* Option 2: Medyayı ekleme with Natural Tap */}
-                          <div className="p-3 rounded-2xl bg-[#0A84FF] text-white font-bold text-xs flex items-center justify-between shadow-glow-blue relative">
+                          <div className="p-3 rounded-2xl bg-[#00A884] text-white font-bold text-xs flex items-center justify-between shadow-glow-emerald relative">
                             <div className="flex items-center gap-2">
                               <FileText className="w-4 h-4 text-white" />
                               <span>Medyayı ekleme</span>
