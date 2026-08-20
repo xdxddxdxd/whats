@@ -75,7 +75,7 @@ export default function HomePage() {
               💬
             </span>
             <span className="font-bold text-xl tracking-tight text-white">
-              WHATS <span className="text-[#38BDF8] font-sans text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/5 border border-white/10">2026</span>
+              WHATS <span className="text-sky-400 font-sans text-xs font-semibold px-2 py-0.5 rounded-full bg-white/5 border border-white/10">2026</span>
             </span>
           </div>
 

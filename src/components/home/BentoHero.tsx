@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Play, ChevronRight, Sparkles } from 'lucide-react';
+import { Play, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { InteractivePhoneGuide } from './InteractivePhoneGuide';
 
@@ -23,18 +23,18 @@ export const BentoHero: React.FC<BentoHeroProps> = ({
       {/* Left: High-Impact Modern Headline */}
       <div className="lg:col-span-6 space-y-6 text-left">
         
-        {/* Sleek Pill Badge (No AI buzzwords) */}
-        <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 shadow-sm backdrop-blur-md">
+        {/* Sleek Pill Badge */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 shadow-sm backdrop-blur-md">
           <span className="w-2 h-2 rounded-full bg-[#38BDF8] animate-pulse" />
-          <span className="text-xs font-mono font-medium tracking-wider text-slate-300 uppercase">
+          <span className="text-xs font-sans font-semibold tracking-wide text-sky-300">
             WHATS 2026 • WhatsApp Sohbet Analizi & Wrapped
           </span>
         </div>
 
-        {/* Headline */}
+        {/* Headline with handwriting font for 'ikonik anlarını' */}
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.12]">
           Sohbetinizin gizli dünyasını ve{' '}
-          <span className="bg-gradient-to-r from-[#38BDF8] via-[#60A5FA] to-[#818CF8] bg-clip-text text-transparent font-extrabold tracking-tight">
+          <span className="text-[#38BDF8] font-caveat font-bold text-5xl sm:text-6xl lg:text-7xl tracking-normal decoration-[#38BDF8]/40 underline underline-offset-8 inline-block px-1">
             ikonik anlarını
           </span>{' '}
           keşfedin.

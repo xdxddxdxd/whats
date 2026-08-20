@@ -41,7 +41,7 @@ export const InteractiveFaq: React.FC = () => {
   return (
     <section id="faq" className="space-y-8 py-10 max-w-4xl mx-auto">
       <div className="text-center space-y-2">
-        <span className="text-xs font-mono font-bold tracking-widest text-[#38BDF8] uppercase px-3 py-1 rounded-full bg-white/5 border border-white/10">
+        <span className="text-xs font-sans font-semibold tracking-wider text-sky-400 uppercase px-3.5 py-1 rounded-full bg-white/5 border border-white/10">
           MERAK EDİLENLER
         </span>
         <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">

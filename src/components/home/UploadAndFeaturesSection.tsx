@@ -183,7 +183,7 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
               <button
                 type="button"
                 onClick={onOpenGuide}
-                className="shrink-0 px-3 py-2 rounded-xl bg-[#38BDF8]/10 hover:bg-[#38BDF8]/20 border border-[#38BDF8]/30 text-xs font-bold text-[#38BDF8] transition-all flex items-center gap-1.5 font-mono shadow-sm"
+                className="shrink-0 px-3.5 py-2 rounded-xl bg-[#38BDF8]/10 hover:bg-[#38BDF8]/20 border border-[#38BDF8]/30 text-xs font-bold text-sky-400 transition-all flex items-center gap-1.5 shadow-sm font-sans"
               >
                 <span>Nasıl Yapılır?</span>
                 <span>📱</span>
@@ -193,31 +193,31 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
 
           {/* 3-Step Mini Onboarding Strip */}
           <div className="p-3.5 rounded-2xl bg-[#0B0D11] border border-white/10 space-y-2.5">
-            <div className="flex items-center justify-between text-[11px] font-mono text-[#38BDF8] font-bold uppercase tracking-wider">
+            <div className="flex items-center justify-between text-xs font-sans text-sky-400 font-bold uppercase tracking-wider">
               <span>3 Adımda Hızlı Başlangıç</span>
-              <span className="text-[#64748B] font-normal">Sıfır Kurulum</span>
+              <span className="text-[#64748B] font-normal lowercase tracking-normal">Sıfır Kurulum</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
               <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
-                <div className="flex items-center gap-1.5 text-white font-bold">
-                  <span className="w-5 h-5 rounded-lg bg-[#38BDF8]/20 text-[#38BDF8] flex items-center justify-center text-[10px] font-mono font-black">1</span>
+                <div className="flex items-center gap-1.5 text-white font-bold font-sans">
+                  <span className="w-5 h-5 rounded-lg bg-[#38BDF8]/20 text-sky-400 flex items-center justify-center text-xs font-sans font-bold">1</span>
                   <span>Sohbeti Açın</span>
                 </div>
                 <p className="text-[11px] text-[#94A3B8] leading-tight">WhatsApp'ta kişi veya grup ismine dokunun.</p>
               </div>
 
               <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
-                <div className="flex items-center gap-1.5 text-white font-bold">
-                  <span className="w-5 h-5 rounded-lg bg-[#38BDF8]/20 text-[#38BDF8] flex items-center justify-center text-[10px] font-mono font-black">2</span>
+                <div className="flex items-center gap-1.5 text-white font-bold font-sans">
+                  <span className="w-5 h-5 rounded-lg bg-[#38BDF8]/20 text-sky-400 flex items-center justify-center text-xs font-sans font-bold">2</span>
                   <span>Dışa Aktar</span>
                 </div>
                 <p className="text-[11px] text-[#94A3B8] leading-tight">En alttan <strong>"Medyasız"</strong> seçin.</p>
               </div>
 
               <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
-                <div className="flex items-center gap-1.5 text-white font-bold">
-                  <span className="w-5 h-5 rounded-lg bg-[#38BDF8]/20 text-[#38BDF8] flex items-center justify-center text-[10px] font-mono font-black">3</span>
+                <div className="flex items-center gap-1.5 text-white font-bold font-sans">
+                  <span className="w-5 h-5 rounded-lg bg-[#38BDF8]/20 text-sky-400 flex items-center justify-center text-xs font-sans font-bold">3</span>
                   <span>Buraya Bırakın</span>
                 </div>
                 <p className="text-[11px] text-[#94A3B8] leading-tight">.txt veya .zip dosyasını seçin.</p>
