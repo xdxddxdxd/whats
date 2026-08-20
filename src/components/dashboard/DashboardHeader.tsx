@@ -12,8 +12,12 @@ import {
   MoreVertical,
   ArrowLeft,
   Bot,
-  Instagram
+  Instagram,
+  QrCode,
+  Crown,
+  Key,
 } from 'lucide-react';
+import { getLicenseInfo } from '@/lib/utils/license';
 
 interface DashboardHeaderProps {
   chat: {
@@ -32,9 +36,11 @@ interface DashboardHeaderProps {
   onOpenPdf: () => void;
   onOpenAskAi?: () => void;
   onOpenStoryCard?: () => void;
+  onOpenQr?: () => void;
   onOpenOwnerControls?: () => void;
   onOpenUpdate?: () => void;
   onOpenDelete?: () => void;
+  onOpenLicenseModal?: () => void;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
@@ -45,12 +51,28 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onOpenPdf,
   onOpenAskAi,
   onOpenStoryCard,
+  onOpenQr,
   onOpenOwnerControls,
   onOpenUpdate,
   onOpenDelete,
+  onOpenLicenseModal,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isPro, setIsPro] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const info = getLicenseInfo();
+    setIsPro(info.isPro);
+
+    const handleLicenseChange = () => {
+      const updated = getLicenseInfo();
+      setIsPro(updated.isPro);
+    };
+
+    window.addEventListener('licenseChanged', handleLicenseChange);
+    return () => window.removeEventListener('licenseChanged', handleLicenseChange);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -66,12 +88,12 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     };
   }, [isMenuOpen]);
 
-  const displayParticipantsTitle = chat.title.includes('♡') || chat.title.includes('&')
-    ? chat.title
+  const displayParticipantsTitle = (chat?.title || '').includes('♡') || (chat?.title || '').includes('&')
+    ? (chat?.title || '')
     : `${user2Name} ♡ ${user1Name}`;
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 font-sans">
       
       {/* 1. Top Navbar Header */}
       <header className="flex items-center justify-between py-2 border-b border-slate-100/80">
@@ -81,8 +103,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <div className="w-9 h-9 rounded-2xl bg-sky-100 border border-sky-200 text-sky-600 flex items-center justify-center font-emoji text-lg shadow-sm group-hover:scale-105 transition-transform">
             💬
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
-            WhatsScope
+          <span className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-1.5 font-sans">
+            WHATS <span className="text-sky-500 font-sans text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-50 border border-sky-200">2026</span>
           </span>
         </Link>
 
@@ -97,6 +119,21 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <span className="hidden sm:inline">Ana Sayfa</span>
           </Link>
 
+          {/* PRO License Status / Upgrade Button */}
+          {onOpenLicenseModal && (
+            <button
+              onClick={onOpenLicenseModal}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all shadow-sm ${
+                isPro
+                  ? 'bg-amber-500/15 border border-amber-500/40 text-amber-700 hover:bg-amber-500/25'
+                  : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-[0_2px_10px_rgba(245,158,11,0.25)]'
+              }`}
+            >
+              <Crown className={`w-3.5 h-3.5 ${isPro ? 'text-amber-600 fill-amber-500' : 'text-yellow-200 fill-yellow-200'}`} />
+              <span>{isPro ? 'PRO Üye 👑' : "PRO'ya Geç"}</span>
+            </button>
+          )}
+
           {/* AI Ask Button */}
           {onOpenAskAi && (
             <button
@@ -105,6 +142,18 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             >
               <Bot className="w-3.5 h-3.5 text-sky-100" />
               <span>AI'a Sor</span>
+            </button>
+          )}
+
+          {/* QR Code Button */}
+          {onOpenQr && (
+            <button
+              onClick={onOpenQr}
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+              title="QR Kod ile Giriş & Paylaş"
+            >
+              <QrCode className="w-3.5 h-3.5 text-sky-600" />
+              <span>QR Kod</span>
             </button>
           )}
 
@@ -139,7 +188,33 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             </button>
 
             {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white border border-slate-100 shadow-[0_10px_30px_rgba(15,23,42,0.12)] p-1.5 z-50 text-xs font-medium text-slate-700 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white border border-slate-100 shadow-[0_10px_30px_rgba(15,23,42,0.12)] p-1.5 z-50 text-xs font-medium text-slate-700 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                {onOpenLicenseModal && (
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenLicenseModal();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-900 font-bold hover:bg-amber-100 transition-colors text-left"
+                  >
+                    <Crown className="w-4 h-4 text-amber-600 fill-amber-500" />
+                    <span>{isPro ? 'PRO Lisans Yönetimi' : "👑 PRO Üyelik & Lisans"}</span>
+                  </button>
+                )}
+
+                {onOpenQr && (
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenQr();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-sky-700 transition-colors text-left"
+                  >
+                    <QrCode className="w-4 h-4 text-sky-500" />
+                    <span>QR Kod ile Katıl</span>
+                  </button>
+                )}
+
                 {onOpenAskAi && (
                   <button
                     onClick={() => {
@@ -194,10 +269,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                       setIsMenuOpen(false);
                       onOpenOwnerControls();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors text-left"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-sky-700 transition-colors text-left"
                   >
                     <Settings className="w-4 h-4 text-slate-500" />
-                    <span>Davet & Yönetim</span>
+                    <span>Yönetim & Davetliler</span>
                   </button>
                 )}
 
@@ -207,59 +282,62 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                       setIsMenuOpen(false);
                       onOpenUpdate();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors text-left"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-sky-700 transition-colors text-left"
                   >
                     <RefreshCw className="w-4 h-4 text-slate-500" />
-                    <span>Sohbeti Güncelle</span>
+                    <span>Yeni Mesajları Ekle</span>
                   </button>
                 )}
 
                 {chat.isOwner && onOpenDelete && (
-                  <div className="pt-1 mt-1 border-t border-slate-100">
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        onOpenDelete();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 transition-colors text-left"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span>Sohbeti Sil</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenDelete();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 transition-colors text-left border-t border-slate-100 mt-1 pt-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Sohbeti Sil</span>
+                  </button>
                 )}
               </div>
             )}
           </div>
 
         </div>
-
       </header>
 
-      {/* 2. Status Badge & Main Heading */}
-      <div className="text-center space-y-3 pt-2">
-        
-        {/* "Analiz Tamamlandı" Badge */}
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-semibold shadow-sm">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Analiz Tamamlandı</span>
+      {/* 2. Hero Title & Metadata Badge */}
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
+              {chat?.title || 'Sohbet Analizi'}
+            </h1>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-[11px] font-bold text-emerald-700">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>Analiz Tamamlandı</span>
+            </span>
+          </div>
+
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            {chat?.chat_type === 'group'
+              ? `${chat.total_participants} katılımcılı grup sohbeti`
+              : displayParticipantsTitle}
+          </p>
         </div>
 
-        {/* Page Main Title */}
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-          WhatsScope Sonuçları
-        </h1>
-
-      </div>
-
-      {/* 3. "Kişi 1 ♡ Kişi 2 - Analiz Edildi" Header Bubble Card */}
-      <div className="max-w-xs mx-auto p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.04)] text-center space-y-1">
-        <h3 className="text-base font-bold text-emerald-700 flex items-center justify-center gap-1.5">
-          <span>{displayParticipantsTitle}</span>
-        </h3>
-        <p className="text-[11px] font-medium text-slate-400 font-sans">
-          Analiz Edildi
-        </p>
+        {/* Dynamic Quick Stats Bar */}
+        <div className="flex items-center gap-2 flex-wrap text-xs text-slate-600 bg-slate-50/80 p-2.5 rounded-2xl border border-slate-200/60">
+          <span className="font-semibold text-slate-900">
+            {(chat?.total_messages || 0).toLocaleString('tr-TR')} Mesaj
+          </span>
+          <span className="text-slate-300">•</span>
+          <span>{chat?.first_message_date ? new Date(chat.first_message_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Kayıt Başı'}</span>
+          <span className="text-slate-400">→</span>
+          <span>{chat?.last_message_date ? new Date(chat.last_message_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Kayıt Sonu'}</span>
+        </div>
       </div>
 
     </div>

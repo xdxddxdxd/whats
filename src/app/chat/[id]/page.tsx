@@ -10,20 +10,24 @@ import { formatNumber } from '@/lib/utils/formatters';
 // Dashboard Components
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { MessageDistributionCard } from '@/components/dashboard/MessageDistributionCard';
 import { ActiveHoursChart } from '@/components/dashboard/ActiveHoursChart';
-import { CommunicationDynamicsCard } from '@/components/dashboard/CommunicationDynamicsCard';
+import { ConversationDynamicsHub } from '@/components/dashboard/ConversationDynamicsHub';
+import { ChangeAnalysisCard } from '@/components/dashboard/ChangeAnalysisCard';
+import { TensionSignalsHub } from '@/components/dashboard/TensionSignalsHub';
+import { OverviewScoreCard } from '@/components/dashboard/OverviewScoreCard';
+import { BehaviorTimelineCard } from '@/components/dashboard/BehaviorTimelineCard';
+import { DashboardSectionNav, DashboardSection } from '@/components/dashboard/DashboardSectionNav';
 import { EmojiLeaderboard } from '@/components/dashboard/EmojiLeaderboard';
 import { SentimentEvolutionCard } from '@/components/dashboard/SentimentEvolutionCard';
 import { RelationshipRolesCard } from '@/components/dashboard/RelationshipRolesCard';
 
-// 6 New Viral Feature Components
-import { FlagsReportCard } from '@/components/dashboard/FlagsReportCard';
-import { ToxicityRadarCard } from '@/components/dashboard/ToxicityRadarCard';
+// Viral Feature Components
+import { WordCloudCard } from '@/components/dashboard/WordCloudCard';
 import { VocabularyDictionaryCard } from '@/components/dashboard/VocabularyDictionaryCard';
 import { TimelineHighlightsCard } from '@/components/dashboard/TimelineHighlightsCard';
 import { AskChatAiModal } from '@/components/dashboard/AskChatAiModal';
 import { StoryCardsExporterModal } from '@/components/dashboard/StoryCardsExporterModal';
+import { QrCodeModal } from '@/components/dashboard/QrCodeModal';
 
 // Modals
 import { OwnerControlModal } from '@/components/dashboard/OwnerControlModal';
@@ -31,12 +35,13 @@ import { IncrementalUpdateModal } from '@/components/dashboard/IncrementalUpdate
 import { DeleteChatModal } from '@/components/dashboard/DeleteChatModal';
 import { WrappedViewer } from '@/components/wrapped/WrappedViewer';
 import { WrappedPdfExporter } from '@/components/wrapped/WrappedPdfExporter';
+import { LicenseModal } from '@/components/license/LicenseModal';
 import { Button } from '@/components/ui/Button';
 
 // Mock and type helpers
 import { chatAnalyticsData } from '@/lib/demo/demo-data';
 import { formatDeterministicMetrics } from '@/lib/analytics/stats-engine';
-import { AISentimentResult, DeterministicMetrics, FullChatAnalysisData } from '@/types/chat';
+import { AISentimentResult, DeterministicMetrics, FullChatAnalysisData, UserStats } from '@/types/chat';
 
 export default function ChatDashboardPage() {
   const params = useParams();
@@ -59,9 +64,11 @@ export default function ChatDashboardPage() {
   const [isPdfOpen, setIsPdfOpen] = useState(false);
   const [isAskAiOpen, setIsAskAiOpen] = useState(false);
   const [isStoryCardOpen, setIsStoryCardOpen] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [isOwnerModalOpen, setIsOwnerModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
 
   const fetchChatDetails = useCallback(async () => {
     if (!chatId) return;
@@ -93,6 +100,7 @@ export default function ChatDashboardPage() {
           router.replace(`/c/${data.inviteCode}`);
           return;
         }
+        throw new Error(data.error || 'Bu sohbete erişim yetkiniz yok.');
       }
 
       if (!res.ok) {
@@ -100,92 +108,82 @@ export default function ChatDashboardPage() {
       }
 
       setChatData(data.chat);
+      setIsOwner(Boolean(data.isOwner));
       setAnalysisData(data.analysis);
-      setIsOwner(data.chat?.isOwner || false);
 
-      // 1. Correctly extract metrics from analysis.metrics OR chat.data
-      const rawMetrics = data.analysis?.metrics || data.chat?.data;
-      if (rawMetrics) {
-        const formatted = rawMetrics.participants && Array.isArray(rawMetrics.participants)
-          ? formatDeterministicMetrics(rawMetrics)
-          : rawMetrics;
+      if (data.analysis?.metrics) {
+        const formatted = data.analysis.metrics.participants
+          ? formatDeterministicMetrics(data.analysis.metrics)
+          : data.analysis.metrics;
         setMetrics(formatted);
-      } else {
-        setMetrics(chatAnalyticsData as any);
       }
-
-      // 2. Extract Sentiment (Progressive)
-      if (data.analysis?.metrics?.sentiment) {
-        setSentiment(data.analysis.metrics.sentiment);
-        setIsSentimentLoading(false);
-      } else if (data.chat?.data?.sentiment) {
-        setSentiment(data.chat.data.sentiment);
-        setIsSentimentLoading(false);
-      } else {
-        fetchSentimentProgressive(chatId);
-      }
-
     } catch (err: any) {
-      console.warn('API isteği başarısız oldu, demo verisi yükleniyor:', err);
-      setChatData({
-        id: 'demo',
-        title: 'nisa cici ♡ Doğukan',
-        chat_type: 'direct',
-        total_messages: chatAnalyticsData.summary.totalMessages,
-        total_participants: 2,
-        first_message_date: chatAnalyticsData.summary.startDate,
-        last_message_date: chatAnalyticsData.summary.endDate,
-        isOwner: true,
-        data: chatAnalyticsData
-      });
-      setAnalysisData({
-        summary: 'Demo WhatsApp analizi',
-        group_vibe: 'Dengeli Dedikodu & Geyik',
-        superlatives: [],
-        wrapped_slides: []
-      });
-      setMetrics(chatAnalyticsData as any);
-      setSentiment(chatAnalyticsData.sentiment as any);
-      setIsSentimentLoading(false);
-      setIsOwner(true);
+      console.error('Chat yükleme hatası:', err);
+      setError(err.message || 'Bir hata oluştu.');
     } finally {
       setIsLoading(false);
     }
   }, [chatId, router]);
 
-  const fetchSentimentProgressive = async (id: string) => {
-    setIsSentimentLoading(true);
-    try {
-      const res = await fetch('/api/analyze-sentiment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId: id })
-      });
-      const data = await res.json();
-      if (data.success && data.sentiment) {
-        setSentiment(data.sentiment);
-      }
-    } catch (err) {
-      console.error('Sentiment analizi alınamadı:', err);
-    } finally {
-      setIsSentimentLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchChatDetails();
   }, [fetchChatDetails]);
 
+  // AI Sentiment fetch
+  useEffect(() => {
+    if (!chatId || isLoading) return;
+
+    if (chatId === 'demo') {
+      setSentiment(chatAnalyticsData.sentiment as any);
+      setIsSentimentLoading(false);
+      return;
+    }
+
+    const fetchSentiment = async () => {
+      setIsSentimentLoading(true);
+      try {
+        const clientOwnerToken = getClientOwnerToken();
+        const guestSession = getClientGuestSession(chatId);
+        const guestToken = guestSession?.sessionToken || '';
+
+        const headers: Record<string, string> = {};
+        if (clientOwnerToken) headers['x-owner-token'] = clientOwnerToken;
+        if (guestToken) headers['x-guest-token'] = guestToken;
+
+        const res = await fetch(`/api/analyze-sentiment?chatId=${chatId}`, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.sentiment) {
+            setSentiment(data.sentiment);
+          }
+        }
+      } catch (err) {
+        console.warn('Sentiment analizi yüklenemedi:', err);
+      } finally {
+        setIsSentimentLoading(false);
+      }
+    };
+
+    fetchSentiment();
+  }, [chatId, isLoading]);
+
   const handleReAnalyze = async () => {
-    if (!chatId || !ownerToken) return;
+    const clientOwnerToken = getClientOwnerToken();
+    const guestSession = getClientGuestSession(chatId);
+    const guestToken = guestSession?.sessionToken || '';
+
+    const headers: Record<string, string> = {};
+    if (clientOwnerToken) headers['x-owner-token'] = clientOwnerToken;
+    if (guestToken) headers['x-guest-token'] = guestToken;
+
     const res = await fetch(`/api/chats/${chatId}/analyze`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ownerToken }),
+      headers,
     });
+
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.error || 'Analiz yenilenemedi.');
+      throw new Error(data.error || 'Yeniden analiz başarısız.');
     }
     setAnalysisData(data.analysis);
     if (data.analysis?.metrics) {
@@ -251,29 +249,54 @@ export default function ChatDashboardPage() {
   }
 
   const effectiveMetrics = metrics || (chatAnalyticsData as any);
-  const user1 = effectiveMetrics?.users?.user1 || chatAnalyticsData.users.user1;
-  const user2 = effectiveMetrics?.users?.user2 || chatAnalyticsData.users.user2;
+  
+  const user1: UserStats = {
+    name: effectiveMetrics?.users?.user1?.name || 'Kullanıcı 1',
+    color: effectiveMetrics?.users?.user1?.color || '#38BDF8',
+    messageCount: effectiveMetrics?.users?.user1?.messageCount || 0,
+    percentage: effectiveMetrics?.users?.user1?.percentage || 50,
+    avgCharLength: effectiveMetrics?.users?.user1?.avgCharLength || 0,
+    avgResponseTimeMin: effectiveMetrics?.users?.user1?.avgResponseTimeMin || 0,
+    startedPercentage: effectiveMetrics?.users?.user1?.startedPercentage || 50,
+    totalEmojis: effectiveMetrics?.users?.user1?.totalEmojis || 0,
+    topEmojis: effectiveMetrics?.users?.user1?.topEmojis || [],
+    singleWordReplyCount: effectiveMetrics?.users?.user1?.singleWordReplyCount || 0
+  };
+
+  const user2: UserStats = {
+    name: effectiveMetrics?.users?.user2?.name || 'Kullanıcı 2',
+    color: effectiveMetrics?.users?.user2?.color || '#10B981',
+    messageCount: effectiveMetrics?.users?.user2?.messageCount || 0,
+    percentage: effectiveMetrics?.users?.user2?.percentage || 50,
+    avgCharLength: effectiveMetrics?.users?.user2?.avgCharLength || 0,
+    avgResponseTimeMin: effectiveMetrics?.users?.user2?.avgResponseTimeMin || 0,
+    startedPercentage: effectiveMetrics?.users?.user2?.startedPercentage || 50,
+    totalEmojis: effectiveMetrics?.users?.user2?.totalEmojis || 0,
+    topEmojis: effectiveMetrics?.users?.user2?.topEmojis || [],
+    singleWordReplyCount: effectiveMetrics?.users?.user2?.singleWordReplyCount || 0
+  };
+
   const wrappedSlides = analysisData?.wrapped_slides || [];
 
   const fullAnalysisForStory: FullChatAnalysisData = {
     summary: {
-      totalMessages: effectiveMetrics?.totalMessages || chatAnalyticsData.summary.totalMessages,
-      startDate: effectiveMetrics?.startDate || chatAnalyticsData.summary.startDate,
-      endDate: effectiveMetrics?.endDate || chatAnalyticsData.summary.endDate,
-      daysCount: effectiveMetrics?.daysCount || chatAnalyticsData.summary.daysCount,
-      dailyAverage: effectiveMetrics?.dailyAverage || chatAnalyticsData.summary.dailyAverage,
-      longestSilenceHours: effectiveMetrics?.longestSilenceHours || chatAnalyticsData.summary.longestSilenceHours,
-      longestSilenceDates: effectiveMetrics?.longestSilenceDates || chatAnalyticsData.summary.longestSilenceDates,
-      mostActiveHour: effectiveMetrics?.mostActiveHour || chatAnalyticsData.summary.mostActiveHour,
-      mostActiveDay: effectiveMetrics?.mostActiveDay || chatAnalyticsData.summary.mostActiveDay,
-      mostActiveDate: effectiveMetrics?.mostActiveDate || chatAnalyticsData.summary.mostActiveDate
+      totalMessages: effectiveMetrics?.totalMessages || 0,
+      startDate: effectiveMetrics?.startDate || 'Kayıt Başlangıcı',
+      endDate: effectiveMetrics?.endDate || 'Kayıt Sonu',
+      daysCount: effectiveMetrics?.daysCount || 1,
+      dailyAverage: effectiveMetrics?.dailyAverage || 0,
+      longestSilenceHours: effectiveMetrics?.longestSilenceHours || 0,
+      longestSilenceDates: effectiveMetrics?.longestSilenceDates || '-',
+      mostActiveHour: effectiveMetrics?.mostActiveHour || '22:00',
+      mostActiveDay: effectiveMetrics?.mostActiveDay || 'Pazar',
+      mostActiveDate: effectiveMetrics?.mostActiveDate || '-'
     },
     users: {
       user1,
       user2
     },
     timeDistribution: effectiveMetrics?.timeDistribution || chatAnalyticsData.timeDistribution,
-    allTopEmojis: effectiveMetrics?.allTopEmojis || chatAnalyticsData.allTopEmojis,
+    allTopEmojis: effectiveMetrics?.allTopEmojis || [],
     sentiment: sentiment || undefined
   };
 
@@ -281,6 +304,8 @@ export default function ChatDashboardPage() {
   const toxicityRadarData = effectiveMetrics?.toxicityRadar || sentiment?.toxicityRadar || chatAnalyticsData.toxicityRadar;
   const chatDictionaryData = effectiveMetrics?.chatDictionary || sentiment?.chatDictionary || chatAnalyticsData.chatDictionary;
   const timelineHighlightsData = effectiveMetrics?.timelineHighlights || sentiment?.timelineHighlights || chatAnalyticsData.timelineHighlights;
+  const compatibilityScoresData = effectiveMetrics?.compatibilityScores || chatAnalyticsData.compatibilityScores;
+  const wordCloudData = effectiveMetrics?.wordCloud || chatAnalyticsData.wordCloud;
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] text-slate-900 pb-28 selection:bg-sky-200 font-sans">
@@ -288,7 +313,7 @@ export default function ChatDashboardPage() {
       {/* Mobile-First Centered Container */}
       <div className="max-w-md sm:max-w-xl mx-auto px-4 sm:px-6 pt-4 space-y-6">
         
-        {/* 1. Header Bar & Titles */}
+        {/* Header */}
         <DashboardHeader
           chat={chatData}
           user1Name={user1.name}
@@ -297,101 +322,140 @@ export default function ChatDashboardPage() {
           onOpenPdf={() => setIsPdfOpen(true)}
           onOpenAskAi={() => setIsAskAiOpen(true)}
           onOpenStoryCard={() => setIsStoryCardOpen(true)}
+          onOpenQr={() => setIsQrModalOpen(true)}
           onOpenOwnerControls={() => setIsOwnerModalOpen(true)}
           onOpenUpdate={() => setIsUpdateModalOpen(true)}
           onOpenDelete={() => setIsDeleteModalOpen(true)}
+          onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
         />
 
-        {/* 2. Toplam Mesaj Büyük Metrik Kartı */}
-        <StatCard
-          title="TOPLAM MESAJ"
-          value={formatNumber(effectiveMetrics.totalMessages)}
-          subtitle={`${effectiveMetrics.daysCount} günlük sohbet dönemi`}
-          badge={`${user1.name} & ${user2.name}`}
-          isHero={true}
-        />
+        {/* Sticky 7-section navigation */}
+        <DashboardSectionNav />
 
-        {/* 3. Kim Daha Çok Yazıyor? (Katılımcı Dağılımı ve Efor Dengesi) */}
-        <MessageDistributionCard
-          user1={user1}
-          user2={user2}
-          totalMessages={effectiveMetrics.totalMessages}
-          startDate={effectiveMetrics.startDate}
-          endDate={effectiveMetrics.endDate}
-        />
+        {/* 01 — Genel Bakış */}
+        <DashboardSection id="genel">
+          <OverviewScoreCard
+            compatibilityScores={compatibilityScoresData}
+            summary={fullAnalysisForStory.summary}
+            user1={user1}
+            user2={user2}
+          />
+        </DashboardSection>
 
-        {/* 4. Zaman Analizi & Aktivite Grafikleri */}
-        <ActiveHoursChart
-          timeDistribution={effectiveMetrics.timeDistribution}
-          mostActiveHour={effectiveMetrics.mostActiveHour}
-          mostActiveDay={effectiveMetrics.mostActiveDay}
-          longestSilenceHours={effectiveMetrics.longestSilenceHours}
-          longestSilenceDates={effectiveMetrics.longestSilenceDates}
-        />
+        {/* 02 — Hacim & Yoğunluk */}
+        <DashboardSection id="hacim">
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard
+              title="Toplam Mesaj"
+              value={formatNumber(effectiveMetrics.totalMessages)}
+              subtitle={`Günlük ortalama ${formatNumber(effectiveMetrics.dailyAverage)} mesaj`}
+            />
+            <StatCard
+              title="Toplam Gün"
+              value={`${effectiveMetrics.daysCount} Gün`}
+              subtitle={`${effectiveMetrics.startDate} — ${effectiveMetrics.endDate}`}
+            />
+          </div>
 
-        {/* 5. İletişim Dinamikleri & Yanıt Hızları */}
-        <CommunicationDynamicsCard
-          user1={user1}
-          user2={user2}
-          longestSilenceHours={effectiveMetrics.longestSilenceHours}
-          longestSilenceDates={effectiveMetrics.longestSilenceDates}
-        />
+          <ConversationDynamicsHub
+            user1={user1}
+            user2={user2}
+            initiationStats={
+              effectiveMetrics.initiationStats || effectiveMetrics.insightBundle?.initiation
+            }
+          />
+          <ChangeAnalysisCard
+            changeAnalysis={
+              effectiveMetrics.changeAnalysis || effectiveMetrics.insightBundle?.changeAnalysis
+            }
+            user1={user1}
+            user2={user2}
+          />
+        </DashboardSection>
 
-        {/* 6. Emoji Analizi & Sıralaması */}
-        <EmojiLeaderboard
-          emojis={effectiveMetrics.allTopEmojis}
-          user1={user1}
-          user2={user2}
-        />
+        {/* 03 — Zaman */}
+        <DashboardSection id="zaman">
+          <ActiveHoursChart
+            timeDistribution={effectiveMetrics.timeDistribution}
+            mostActiveHour={effectiveMetrics.mostActiveHour}
+            mostActiveDay={effectiveMetrics.mostActiveDay}
+            longestSilenceHours={effectiveMetrics.longestSilenceHours}
+            longestSilenceDates={effectiveMetrics.longestSilenceDates}
+          />
+          <BehaviorTimelineCard
+            behaviorTimeline={
+              effectiveMetrics.behaviorTimeline || effectiveMetrics.insightBundle?.behaviorTimeline
+            }
+          />
+        </DashboardSection>
 
-        {/* 7. Duygusal Analiz & Evrim (Progressive AI Layer) */}
-        <SentimentEvolutionCard
-          sentiment={sentiment || undefined}
-          isLoading={isSentimentLoading}
-        />
+        {/* 04 — Duygu & Ton */}
+        <DashboardSection id="duygu">
+          <SentimentEvolutionCard
+            sentiment={sentiment || undefined}
+            isLoading={isSentimentLoading}
+          />
+          <TensionSignalsHub
+            conflictAnalysis={
+              effectiveMetrics.conflictAnalysis || effectiveMetrics.insightBundle?.conflictAnalysis
+            }
+            silence={effectiveMetrics.silenceAnalysis}
+            signals={effectiveMetrics.insightBundle?.signals}
+            toxicityRadar={toxicityRadarData}
+            flagsReport={flagsReportData}
+            user1={user1}
+            user2={user2}
+          />
+        </DashboardSection>
 
-        {/* 8. Eğlenceli Unvanlar & İlişki Rolleri (Progressive AI Layer) */}
-        <RelationshipRolesCard
-          sentiment={sentiment || undefined}
-          user1={user1}
-          user2={user2}
-          isLoading={isSentimentLoading}
-        />
+        {/* 05 — Kelimeler */}
+        <DashboardSection id="kelimeler">
+          <WordCloudCard words={wordCloudData} />
+          <EmojiLeaderboard
+            emojis={effectiveMetrics.allTopEmojis}
+            user1={user1}
+            user2={user2}
+          />
+          <VocabularyDictionaryCard
+            chatDictionary={chatDictionaryData}
+            user1={user1}
+            user2={user2}
+          />
+        </DashboardSection>
 
-        {/* 9. [YENİ] Red & Green Flag Raporu */}
-        <FlagsReportCard
-          flagsReport={flagsReportData}
-          user1={user1}
-          user2={user2}
-        />
+        {/* 06 — Önemli Anlar */}
+        <DashboardSection id="anlar">
+          <TimelineHighlightsCard highlights={timelineHighlightsData} />
+        </DashboardSection>
 
-        {/* 10. [YENİ] Trip & Kavga Barometresi */}
-        <ToxicityRadarCard
-          toxicityRadar={toxicityRadarData}
-          user1={user1}
-          user2={user2}
-        />
-
-        {/* 11. [YENİ] İkonik Kelimeler & Sohbet Sözlüğü */}
-        <VocabularyDictionaryCard
-          chatDictionary={chatDictionaryData}
-          user1={user1}
-          user2={user2}
-        />
-
-        {/* 12. [YENİ] Zaman Tüneli & Önemli Anlar */}
-        <TimelineHighlightsCard
-          highlights={timelineHighlightsData}
-        />
+        {/* 07 — Eğlence (sinyal tabanlı, hüküm yok) */}
+        <DashboardSection id="eglence">
+          <RelationshipRolesCard
+            sentiment={sentiment || undefined}
+            user1={user1}
+            user2={user2}
+            isLoading={isSentimentLoading}
+          />
+        </DashboardSection>
 
       </div>
 
-      {/* [YENİ] Sohbetinle Konuş (AI Asistanı - 5 Soru Limitli) */}
+      {/* [YENİ] Sohbetinle Konuş (AI Asistanı - PRO Özel) */}
       <AskChatAiModal
         isOpen={isAskAiOpen}
         onClose={() => setIsAskAiOpen(false)}
         chatId={chatData.id}
         chatTitle={chatData.title}
+        onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
+      />
+
+      {/* [YENİ] QR Kod ile Giriş & Paylaş Modal */}
+      <QrCodeModal
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        chatTitle={chatData.title}
+        inviteCode={chatData.invite?.invite_code}
+        passwordPin={chatData.invite?.password_pin}
       />
 
       {/* [YENİ] Instagram & TikTok 9:16 Story Kartı Üretici */}
@@ -412,6 +476,13 @@ export default function ChatDashboardPage() {
           setIsWrappedOpen(false);
           setIsPdfOpen(true);
         }}
+        onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
+      />
+
+      {/* License / PRO Upgrade Modal */}
+      <LicenseModal
+        isOpen={isLicenseModalOpen}
+        onClose={() => setIsLicenseModalOpen(false)}
       />
 
       {/* PDF Exporter Modal */}

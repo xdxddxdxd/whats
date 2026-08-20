@@ -389,8 +389,8 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
                 <RefreshCw className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-base font-bold text-white">Artımlı Güncelleme & AI Soru Sorma</h4>
-                <span className="text-xs text-sky-400 font-medium">Delta Tracker • 5 Soru Limitli AI</span>
+                <h4 className="text-base font-bold text-white">Artımlı Güncelleme & AI Asistanı</h4>
+                <span className="text-xs text-sky-400 font-medium">Delta Tracker • PRO Sınırsız AI</span>
               </div>
             </div>
             <p className="text-xs text-[#94A3B8] leading-relaxed font-sans pt-1">

@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, HelpCircle } from 'lucide-react';
+import { Play, HelpCircle, Crown } from 'lucide-react';
 import { getClientOwnerToken } from '@/lib/utils/session';
+import { getLicenseInfo } from '@/lib/utils/license';
 import { BentoHero } from '@/components/home/BentoHero';
 import { UploadAndFeaturesSection } from '@/components/home/UploadAndFeaturesSection';
 import { InteractiveFaq } from '@/components/home/InteractiveFaq';
 import { HowToExportGuideModal } from '@/components/home/HowToExportGuideModal';
+import { LicenseModal } from '@/components/license/LicenseModal';
 import { CorporateFooter } from '@/components/home/CorporateFooter';
 import { Button } from '@/components/ui/Button';
 
@@ -16,10 +18,22 @@ export default function HomePage() {
   const [ownerToken, setOwnerToken] = useState<string>('');
   const [isDemoLoading, setIsDemoLoading] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isLicenseOpen, setIsLicenseOpen] = useState(false);
+  const [isPro, setIsPro] = useState(false);
 
   useEffect(() => {
     const token = getClientOwnerToken();
     setOwnerToken(token);
+    const info = getLicenseInfo();
+    setIsPro(info.isPro);
+
+    const handleLicenseChange = () => {
+      const updated = getLicenseInfo();
+      setIsPro(updated.isPro);
+    };
+
+    window.addEventListener('licenseChanged', handleLicenseChange);
+    return () => window.removeEventListener('licenseChanged', handleLicenseChange);
   }, []);
 
   const handleUploadSuccess = (chatId: string) => {
@@ -102,6 +116,20 @@ export default function HomePage() {
               SSS
             </a>
 
+            {/* PRO License / Upgrade Button */}
+            <button
+              type="button"
+              onClick={() => setIsLicenseOpen(true)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all shadow-sm ${
+                isPro
+                  ? 'bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:bg-amber-500/25'
+                  : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-[0_2px_12px_rgba(245,158,11,0.3)]'
+              }`}
+            >
+              <Crown className={`w-3.5 h-3.5 ${isPro ? 'text-amber-400 fill-amber-400' : 'text-yellow-200 fill-yellow-200'}`} />
+              <span>{isPro ? 'PRO Üye 👑' : "PRO'ya Geç"}</span>
+            </button>
+
             <Button
               variant="wrapped"
               size="sm"
@@ -156,6 +184,12 @@ export default function HomePage() {
         isOpen={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
         onReadyToUpload={scrollToUpload}
+      />
+
+      {/* License / PRO Upgrade Modal */}
+      <LicenseModal
+        isOpen={isLicenseOpen}
+        onClose={() => setIsLicenseOpen(false)}
       />
 
       {/* Corporate & Legal Footer */}
