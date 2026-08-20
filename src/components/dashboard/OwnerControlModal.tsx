@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Copy, Check, UserX, UserCheck, RefreshCw, Link as LinkIcon, ShieldCheck } from 'lucide-react';
+import { Copy, Check, UserX, UserCheck, RefreshCw, Link as LinkIcon, ShieldCheck, QrCode, Download } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 
@@ -37,6 +38,7 @@ export const OwnerControlModal: React.FC<OwnerControlModalProps> = ({
   const [guests, setGuests] = useState<GuestSession[]>([]);
   const [isLoadingGuests, setIsLoadingGuests] = useState(false);
   const [isReAnalyzing, setIsReAnalyzing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const inviteUrl = typeof window !== 'undefined' && inviteCode
@@ -107,6 +109,34 @@ export const OwnerControlModal: React.FC<OwnerControlModalProps> = ({
     }
   };
 
+
+  const handleExportBackup = async () => {
+    setIsExporting(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/chats/${chatId}/export?owner_token=${encodeURIComponent(ownerToken)}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Yedek indirilemedi.');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cd = res.headers.get('Content-Disposition') || '';
+      const match = cd.match(/filename="([^"]+)"/);
+      a.download = match?.[1] || `whatscope-backup-${chatId.slice(0, 8)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setActionError(err.message || 'Yedekleme başarısız.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleRunReAnalyze = async () => {
     setIsReAnalyzing(true);
     setActionError(null);
@@ -129,48 +159,72 @@ export const OwnerControlModal: React.FC<OwnerControlModalProps> = ({
     >
       <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-1">
         
-        {/* Invite Link & PIN Section */}
-        <div className="p-4 bg-[#F7F9FC] rounded-2xl border border-[#E5E9F0] space-y-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-[#0A0A0A] uppercase tracking-wider">
-            <LinkIcon className="w-4 h-4 text-[#0284C7]" />
-            <span>Otomatik Davet Linki & Şifre</span>
+        {/* Invite Link, QR Code & PIN Section */}
+        <div className="p-5 bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#0F172A] uppercase tracking-wider">
+              <QrCode className="w-4 h-4 text-[#0284C7]" />
+              <span>Davet QR Kodu & Giriş Bağlantısı</span>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">
+              KAMERA İLE GİRİŞ
+            </span>
+          </div>
+
+          {/* QR Code Center Box */}
+          <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
+            <div className="p-3 bg-white rounded-xl border border-slate-100 shadow-inner">
+              <QRCodeSVG
+                value={inviteUrl}
+                size={160}
+                level="H"
+                includeMargin={true}
+                bgColor="#FFFFFF"
+                fgColor="#0F172A"
+              />
+            </div>
+            <p className="text-xs font-semibold text-slate-700 text-center">
+              Telefon kamerasını QR koda tutarak sohbete anında katılın!
+            </p>
           </div>
 
           <div>
-            <label className="text-xs text-[#6B7280] font-medium block mb-1">
-              Davet Bağlantısı (Sabit)
+            <label className="text-xs text-[#64748B] font-medium block mb-1">
+              Davet Bağlantısı
             </label>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 readOnly
                 value={inviteUrl}
-                className="flex-1 bg-white border border-[#E5E9F0] rounded-xl px-3 py-2 text-xs font-mono text-[#0A0A0A] select-all outline-none"
+                className="flex-1 bg-white border border-[#E2E8F0] rounded-xl px-3 py-2 text-xs font-mono text-[#0F172A] select-all outline-none"
               />
               <Button size="sm" variant="secondary" onClick={handleCopyLink}>
                 {copiedLink ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedLink ? 'Kopyalandı' : 'Linki Kopyala'}</span>
+                <span>{copiedLink ? 'Kopyalandı' : 'Kopyala'}</span>
               </Button>
             </div>
           </div>
 
-          <div>
-            <label className="text-xs text-[#6B7280] font-medium block mb-1">
-              Sabit Giriş PIN / Şifre
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                readOnly
-                value={passwordPin || '------'}
-                className="w-36 bg-white border border-[#E5E9F0] rounded-xl px-3 py-2 text-base font-mono font-bold tracking-widest text-[#0A0A0A] text-center select-all outline-none"
-              />
-              <Button size="sm" variant="secondary" onClick={handleCopyPin}>
-                {copiedPin ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedPin ? 'PIN Kopyalandı' : 'PIN Kopyala'}</span>
-              </Button>
+          {passwordPin && (
+            <div>
+              <label className="text-xs text-[#64748B] font-medium block mb-1">
+                Sabit Giriş PIN / Şifre
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={passwordPin || '------'}
+                  className="w-36 bg-white border border-[#E2E8F0] rounded-xl px-3 py-2 text-base font-mono font-bold tracking-widest text-[#0F172A] text-center select-all outline-none"
+                />
+                <Button size="sm" variant="secondary" onClick={handleCopyPin}>
+                  {copiedPin ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedPin ? 'Kopyalandı' : 'Kopyala'}</span>
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Guests Access Control List */}
@@ -237,6 +291,25 @@ export const OwnerControlModal: React.FC<OwnerControlModalProps> = ({
               ))}
             </div>
           )}
+        </div>
+
+        {/* Backup export — owner_token kaybına karşı */}
+        <div className="pt-2 border-t border-[#E5E9F0] flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold text-[#0A0A0A]">Analiz Yedeği (JSON)</p>
+            <p className="text-[11px] text-[#6B7280]">
+              İstatistik, özet ve davet bilgilerini indir. Ham mesaj yok — token kaybında kurtarma için.
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleExportBackup}
+            isLoading={isExporting}
+          >
+            <Download className="w-4 h-4" />
+            <span>Yedek İndir</span>
+          </Button>
         </div>
 
         {/* Re-Analyze Action */}
