@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Play, HelpCircle } from 'lucide-react';
 import { getClientOwnerToken } from '@/lib/utils/session';
 import { BentoHero } from '@/components/home/BentoHero';
+import { InteractivePhoneGuide } from '@/components/home/InteractivePhoneGuide';
 import { UploadAndFeaturesSection } from '@/components/home/UploadAndFeaturesSection';
 import { InteractiveFaq } from '@/components/home/InteractiveFaq';
 import { HowToExportGuideModal } from '@/components/home/HowToExportGuideModal';
@@ -53,6 +54,15 @@ export default function HomePage() {
     }
   };
 
+  const scrollToPhoneGuide = () => {
+    const el = document.getElementById('phone-guide');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      setIsGuideOpen(true);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-[#07090C] text-white selection:bg-[#38BDF8]/30 font-sans relative overflow-hidden">
       
@@ -78,11 +88,11 @@ export default function HomePage() {
           <div className="flex items-center gap-3 sm:gap-6">
             <button
               type="button"
-              onClick={() => setIsGuideOpen(true)}
+              onClick={scrollToPhoneGuide}
               className="text-xs sm:text-sm text-[#94A3B8] hover:text-[#38BDF8] transition-colors flex items-center gap-1.5 font-medium"
             >
               <HelpCircle className="w-4 h-4 text-[#38BDF8]" />
-              <span>Nasıl Kullanılır?</span>
+              <span>Nasıl Dışa Aktarılır? 📱</span>
             </button>
             <a
               href="#upload-hub"
@@ -128,11 +138,16 @@ export default function HomePage() {
         <BentoHero
           onUploadClick={scrollToUpload}
           onDemoClick={handleCreateDemo}
-          onOpenGuide={() => setIsGuideOpen(true)}
+          onOpenGuide={scrollToPhoneGuide}
           isDemoLoading={isDemoLoading}
         />
 
-        {/* 2. Side-by-Side: Yükleme (Solda) + Özellikler (Sağda) */}
+        {/* 2. Interactive Animated Phone Export Guide Simulator */}
+        <div id="phone-guide" className="scroll-mt-24">
+          <InteractivePhoneGuide onUploadClick={scrollToUpload} />
+        </div>
+
+        {/* 3. Side-by-Side: Yükleme (Solda) + Özellikler (Sağda) */}
         <UploadAndFeaturesSection
           ownerToken={ownerToken}
           isLimitReached={false}
@@ -141,7 +156,7 @@ export default function HomePage() {
           onOpenGuide={() => setIsGuideOpen(true)}
         />
 
-        {/* 3. Interactive Accordion FAQ */}
+        {/* 4. Interactive Accordion FAQ */}
         <InteractiveFaq />
 
       </div>
