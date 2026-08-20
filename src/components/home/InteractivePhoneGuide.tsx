@@ -5,15 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Smartphone,
   Apple,
-  Share2,
-  CheckCircle2,
-  ChevronRight,
-  Sparkles,
   ChevronLeft,
+  ChevronRight,
   MoreVertical,
   Play,
   Pause,
-  ShieldCheck,
   Phone,
   Video,
   Search,
@@ -21,12 +17,11 @@ import {
   Mic,
   Camera,
   Paperclip,
-  Trash2,
+  Smile,
   X,
   FileText,
   Users,
   Image as ImageIcon,
-  FolderDown,
   HardDrive,
   Star,
   Bell,
@@ -34,9 +29,9 @@ import {
   UserPlus,
   Heart,
   ListPlus,
-  Ban,
-  AlertTriangle,
   Sticker,
+  Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 
@@ -44,687 +39,630 @@ interface InteractivePhoneGuideProps {
   onUploadClick?: () => void;
 }
 
+// Hand-drawn blue marker highlight component (like the user drew on screenshots)
+const HandDrawnBlueMarker: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <svg
+    viewBox="0 0 160 60"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={`absolute pointer-events-none drop-shadow-[0_0_8px_rgba(37,99,235,0.8)] ${className}`}
+  >
+    <motion.path
+      d="M12 28 C 10 12, 50 6, 95 8 C 140 10, 155 22, 150 38 C 145 52, 105 56, 60 54 C 25 52, 6 42, 16 24 C 22 14, 60 10, 105 12"
+      stroke="#2563eb"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      initial={{ pathLength: 0, opacity: 0 }}
+      animate={{ pathLength: 1, opacity: 1 }}
+      transition={{ duration: 0.6, ease: 'easeOut' }}
+    />
+  </svg>
+);
+
+const SmallBlueCircleMarker: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <svg
+    viewBox="0 0 50 50"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={`absolute pointer-events-none drop-shadow-[0_0_8px_rgba(37,99,235,0.9)] ${className}`}
+  >
+    <motion.path
+      d="M25 6 C 36 5, 45 14, 44 26 C 43 38, 33 46, 20 44 C 9 42, 4 31, 7 19 C 10 9, 21 5, 34 6"
+      stroke="#2563eb"
+      strokeWidth="4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      initial={{ pathLength: 0, opacity: 0 }}
+      animate={{ pathLength: 1, opacity: 1 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    />
+  </svg>
+);
+
 export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ onUploadClick }) => {
-  const [platform, setPlatform] = useState<'ios' | 'android'>('ios');
+  const [platform, setPlatform] = useState<'ios' | 'android'>('android');
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
 
-  // iOS Steps (4 distinct visual phases matching the user screenshots)
-  const iosSteps = [
-    {
-      stepNum: 1,
-      title: 'Kişi / Grup İsmine Dokunun',
-      desc: 'Sohbet ekranında en üstteki isme (Doğukan) dokunarak Kişi Bilgisi ekranını açın.',
-    },
-    {
-      stepNum: 2,
-      title: 'Kişi Bilgisinde Aşağı Kaydırın',
-      desc: 'Açılan profilde aşağı doğru kaydırarak eylem seçeneklerinin olduğu alt bölüme gelin.',
-    },
-    {
-      stepNum: 3,
-      title: '"Sohbeti dışa aktar" Butonuna Basın',
-      desc: 'En alttaki eylem menüsünden "Sohbeti dışa aktar" seçeneğine dokunun.',
-    },
-    {
-      stepNum: 4,
-      title: '"Medyayı ekleme" Seçeneğini Seçin',
-      desc: 'Alttan açılan pencerede "Medyayı ekleme" butonuna basarak hafif .zip arşivinizi alın.',
-    },
-  ];
+  const stepTitles = {
+    android: [
+      '1. Adım: Sağ üstteki üç dikey noktaya (⋮) dokunun',
+      '2. Adım: Menünün en altındaki "Diğer ▸" seçeneğine dokunun',
+      '3. Adım: Açılan alt menüden "Sohbeti dışa aktar" butonuna dokunun',
+      '4. Adım: Ekrana gelen uyarıda yeşil "MEDYASIZ" butonuna basın',
+    ],
+    ios: [
+      '1. Adım: Üstteki kişi / grup adına (Doğukan) dokunun',
+      '2. Adım: Açılan Kişi Bilgisi sayfasında en alta kaydırın (Scroll Down)',
+      '3. Adım: En alttaki seçeneklerden "Sohbeti dışa aktar" butonuna dokunun',
+      '4. Adım: Alttan açılan pencerede "Medyayı ekleme" seçeneğini seçin',
+    ],
+  };
 
-  // Android Steps (4 distinct visual phases matching the user screenshots)
-  const androidSteps = [
-    {
-      stepNum: 1,
-      title: 'Sağ Üstteki Üç Noktaya (⋮) Dokunun',
-      desc: 'Sohbet penceresinin sağ üst köşesindeki üç nokta simgesine dokunup menüyü açın.',
-    },
-    {
-      stepNum: 2,
-      title: 'Açılan Menüden "Diğer ▸" Seçeneğine Basın',
-      desc: 'Menü listesinin en altında yer alan "Diğer" seçeneğine dokunun.',
-    },
-    {
-      stepNum: 3,
-      title: '"Sohbeti dışa aktar" Seçeneğine Dokunun',
-      desc: 'Açılan ikinci alt menüden "Sohbeti dışa aktar" butonuna dokunun.',
-    },
-    {
-      stepNum: 4,
-      title: '"MEDYASIZ" Butonuna Basın',
-      desc: 'Ekrana gelen uyarıda yeşil "MEDYASIZ" seçeneğini seçip .txt dosyanızı yükleyin.',
-    },
-  ];
-
-  const activeSteps = platform === 'ios' ? iosSteps : androidSteps;
-
-  // Auto-play loop: advances steps smoothly
+  // Continuous loop animation
   useEffect(() => {
     if (!isPlaying) return;
 
     const timer = setInterval(() => {
       setCurrentStep((prev) => (prev + 1) % 4);
-    }, 4600);
+    }, 4500);
 
     return () => clearInterval(timer);
   }, [isPlaying, platform]);
 
   return (
-    <section className="relative rounded-3xl bg-gradient-to-b from-[#0C1015] via-[#090C10] to-[#05070A] border border-white/10 p-6 sm:p-10 shadow-2xl overflow-hidden">
+    <section className="relative rounded-3xl bg-gradient-to-b from-[#0B0F14] via-[#080B0F] to-[#040608] border border-white/10 p-6 sm:p-12 shadow-2xl overflow-hidden font-sans">
       
-      {/* Ambient Radial Backlight */}
-      <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-[#0284C7]/20 via-[#00A884]/10 to-transparent rounded-full blur-[140px] pointer-events-none" />
+      {/* Background glow */}
+      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-[#2563eb]/20 via-[#00A884]/15 to-transparent rounded-full blur-[130px] pointer-events-none" />
 
-      {/* Header info */}
-      <div className="text-center max-w-2xl mx-auto space-y-3 mb-10 relative z-10">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-[#38BDF8]/30 shadow-glow-blue">
-          <Smartphone className="w-3.5 h-3.5 text-[#38BDF8]" />
-          <span className="text-[11px] font-mono font-bold text-[#7DD3FC] uppercase tracking-wider">
-            Birebir WhatsApp Dışa Aktarma Rehberi
+      {/* Header section */}
+      <div className="text-center max-w-2xl mx-auto space-y-4 mb-8 relative z-10">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-sky-400/30 shadow-glow-blue">
+          <Smartphone className="w-3.5 h-3.5 text-sky-400" />
+          <span className="text-[11px] font-mono font-bold text-sky-300 uppercase tracking-wider">
+            WhatsApp Dışa Aktarma Canlı Simülatörü
           </span>
         </div>
 
         <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-          WhatsApp Sohbeti Nasıl Dışa Aktarılır? 📱
+          WhatsApp Sohbetinizi Nasıl Dışa Aktarırsınız?
         </h2>
-        <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
-          <strong>{platform === 'ios' ? 'iPhone (iOS)' : 'Android'}</strong> cihazınızdaki orijinal WhatsApp ekranlarını ve dışa aktarma adımlarını canlı simülatörde izleyin.
+        <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+          Aşağıdaki telefondan <strong>{platform === 'android' ? 'Android' : 'iPhone (iOS)'}</strong> cihazınızdaki orijinal WhatsApp adımlarını canlı olarak izleyin.
         </p>
 
-        {/* Platform Switches & Play/Pause */}
-        <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
-          <div className="inline-flex p-1 rounded-2xl bg-[#161B22] border border-white/10">
-            <button
-              type="button"
-              onClick={() => {
-                setPlatform('ios');
-                setCurrentStep(0);
-              }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                platform === 'ios'
-                  ? 'bg-[#0A84FF] text-white shadow-glow-blue'
-                  : 'text-[#94A3B8] hover:text-white'
-              }`}
-            >
-              <Apple className="w-3.5 h-3.5" />
-              <span>iPhone (iOS)</span>
-            </button>
-
+        {/* Platform selection pills */}
+        <div className="flex items-center justify-center gap-3 pt-1">
+          <div className="inline-flex p-1 rounded-2xl bg-[#141A22] border border-white/10 shadow-lg">
             <button
               type="button"
               onClick={() => {
                 setPlatform('android');
                 setCurrentStep(0);
               }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all ${
                 platform === 'android'
-                  ? 'bg-[#00A884] text-white shadow-glow-emerald'
-                  : 'text-[#94A3B8] hover:text-white'
+                  ? 'bg-[#00A884] text-white shadow-[0_0_15px_rgba(0,168,132,0.4)]'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Smartphone className="w-3.5 h-3.5" />
+              <Smartphone className="w-4 h-4" />
               <span>Android</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPlatform('ios');
+                setCurrentStep(0);
+              }}
+              className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all ${
+                platform === 'ios'
+                  ? 'bg-[#0A84FF] text-white shadow-[0_0_15px_rgba(10,132,255,0.4)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Apple className="w-4 h-4" />
+              <span>iPhone (iOS)</span>
             </button>
           </div>
 
           <button
             type="button"
             onClick={() => setIsPlaying(!isPlaying)}
-            className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-[#94A3B8] hover:text-white transition-all flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-slate-300 hover:text-white transition-all flex items-center gap-1.5"
+            title={isPlaying ? 'Animasyonu Duraklat' : 'Animasyonu Oynat'}
           >
             {isPlaying ? (
               <>
                 <Pause className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400 font-semibold">Oynatılıyor</span>
+                <span className="text-emerald-400 font-semibold text-[11px]">Canlı Video</span>
               </>
             ) : (
               <>
-                <Play className="w-3.5 h-3.5 text-[#38BDF8]" />
-                <span>Oynat</span>
+                <Play className="w-3.5 h-3.5 text-sky-400" />
+                <span className="text-[11px]">Oynat</span>
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* Main Grid: Left Clean Step Cards, Right Exact Phone Mockup */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10 max-w-6xl mx-auto">
-        
-        {/* LEFT COLUMN: Clean, uncluttered step cards */}
-        <div className="lg:col-span-6 space-y-3 order-2 lg:order-1">
-          {activeSteps.map((s, idx) => {
-            const isActive = currentStep === idx;
-            return (
-              <motion.div
-                key={`${platform}-${idx}`}
+      {/* Step Indicator Header (Above Phone) */}
+      <div className="max-w-md mx-auto mb-6 text-center relative z-10">
+        <div className="p-3 rounded-2xl bg-[#131920] border border-white/10 shadow-lg">
+          <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-2 px-1">
+            <span className="font-bold text-sky-400">Adım {currentStep + 1} / 4</span>
+            <span>{platform === 'android' ? 'Android WhatsApp' : 'iOS WhatsApp'}</span>
+          </div>
+          
+          <p className="text-xs sm:text-sm font-bold text-white leading-snug">
+            {stepTitles[platform][currentStep]}
+          </p>
+
+          {/* Progress dots / bars */}
+          <div className="grid grid-cols-4 gap-1.5 mt-2.5">
+            {[0, 1, 2, 3].map((stepIdx) => (
+              <button
+                key={stepIdx}
+                type="button"
                 onClick={() => {
-                  setCurrentStep(idx);
+                  setCurrentStep(stepIdx);
                   setIsPlaying(false);
                 }}
-                className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 border relative overflow-hidden ${
-                  isActive
-                    ? platform === 'ios'
-                      ? 'bg-[#161B22] border-[#0A84FF] shadow-glow-blue/20 translate-x-1.5'
-                      : 'bg-[#161B22] border-[#00A884] shadow-glow-emerald/20 translate-x-1.5'
-                    : 'bg-[#0E1116] border-white/5 hover:border-white/15 opacity-70 hover:opacity-100'
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  currentStep === stepIdx
+                    ? platform === 'android'
+                      ? 'bg-[#00A884] shadow-[0_0_8px_rgba(0,168,132,0.8)]'
+                      : 'bg-[#0A84FF] shadow-[0_0_8px_rgba(10,132,255,0.8)]'
+                    : 'bg-white/15 hover:bg-white/30'
                 }`}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="activeBarGuide"
-                    className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-                      platform === 'ios' ? 'bg-[#0A84FF]' : 'bg-[#00A884]'
-                    }`}
-                  />
-                )}
-
-                <div className="flex items-start gap-3.5 pl-1.5">
-                  <div
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center font-mono font-bold text-xs shrink-0 transition-colors ${
-                      isActive
-                        ? platform === 'ios'
-                          ? 'bg-[#0A84FF] text-white shadow-glow-blue'
-                          : 'bg-[#00A884] text-white shadow-glow-emerald'
-                        : 'bg-white/5 text-[#94A3B8]'
-                    }`}
-                  >
-                    {s.stepNum}
-                  </div>
-
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <h4 className={`text-sm font-bold truncate ${isActive ? 'text-white' : 'text-[#94A3B8]'}`}>
-                      {s.title}
-                    </h4>
-                    <p className="text-xs text-[#94A3B8] leading-relaxed font-sans">
-                      {s.desc}
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-
-          {/* Bottom CTA */}
-          <div className="pt-3 flex items-center gap-3">
-            {onUploadClick && (
-              <Button
-                variant="blue"
-                size="md"
-                onClick={onUploadClick}
-                className="font-bold text-xs shadow-glow-blue w-full sm:w-auto"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-black" />
-                <span>Hazırım, Sohbeti Yükle</span>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            )}
-
-            <div className="text-[11px] text-[#64748B] font-mono flex items-center gap-1.5 hidden sm:flex">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Sıfır Medya • %100 Güvenli & Hızlı</span>
-            </div>
+              />
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* RIGHT COLUMN: Pixel-Perfect Phone Screen */}
-        <div className="lg:col-span-6 flex justify-center order-1 lg:order-2">
+      {/* CENTERED ULTRA-REALISTIC PHONE MOCKUP */}
+      <div className="flex justify-center items-center relative z-10 max-w-xl mx-auto">
+        
+        {/* Phone Outer Chassis */}
+        <div className="w-[325px] sm:w-[365px] h-[640px] sm:h-[680px] rounded-[52px] bg-[#171B21] p-3.5 shadow-[0_25px_70px_rgba(0,0,0,0.85)] border-[5px] border-[#2B323D] relative select-none">
           
-          {/* Phone Shell */}
-          <div className="w-[310px] sm:w-[340px] h-[610px] sm:h-[640px] rounded-[48px] bg-[#1A1E24] p-3 shadow-2xl border-4 border-[#2A303A] relative">
+          {/* Physical Side Buttons */}
+          <div className="absolute -left-[8px] top-24 w-[3px] h-10 bg-[#4B5563] rounded-l-md" />
+          <div className="absolute -left-[8px] top-38 w-[3px] h-14 bg-[#4B5563] rounded-l-md" />
+          <div className="absolute -right-[8px] top-30 w-[3px] h-16 bg-[#4B5563] rounded-r-md" />
+
+          {/* Screen Inner Display */}
+          <div className="w-full h-full rounded-[42px] bg-[#0B141A] overflow-hidden flex flex-col relative text-white border border-white/5 font-sans">
             
-            {/* Buttons on Side */}
-            <div className="absolute -left-[7px] top-24 w-[3px] h-9 bg-[#4B5563] rounded-l-md" />
-            <div className="absolute -left-[7px] top-36 w-[3px] h-12 bg-[#4B5563] rounded-l-md" />
-            <div className="absolute -right-[7px] top-28 w-[3px] h-14 bg-[#4B5563] rounded-r-md" />
+            {/* Dynamic Island / Top Camera Notch */}
+            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-24 h-5 bg-black rounded-full z-40 flex items-center justify-end px-2 pointer-events-none shadow-md">
+              <div className="w-2 h-2 rounded-full bg-[#111A24]" />
+            </div>
 
-            {/* Screen Viewport */}
-            <div className="w-full h-full rounded-[40px] bg-[#0B141A] overflow-hidden flex flex-col relative text-white select-none border border-white/5 font-sans">
-              
-              {/* Dynamic Island / Notch */}
-              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-5 bg-black rounded-full z-30 flex items-center justify-end px-2">
-                <div className="w-2 h-2 rounded-full bg-[#1A2530]" />
+            {/* Status Bar */}
+            <div className="h-8 bg-[#0B141A] pt-1.5 px-6 flex items-center justify-between text-[10px] font-semibold text-slate-300 z-30 shrink-0 border-b border-white/5">
+              <span>16:17</span>
+              <div className="flex items-center gap-1.5 text-[9px]">
+                <span>LTE</span>
+                <span className="bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded font-mono font-bold">35</span>
               </div>
+            </div>
 
-              {/* Status Bar */}
-              <div className="h-8 bg-[#111B21] pt-1.5 px-6 flex items-center justify-between text-[10px] font-semibold text-slate-300 z-20">
-                <span>16:17</span>
-                <div className="flex items-center gap-1 text-[9px]">
-                  <span>LTE</span>
-                  <span className="bg-emerald-500/20 text-emerald-400 px-1 rounded">35</span>
-                </div>
-              </div>
+            {/* SVG WhatsApp Doodle Wallpaper Pattern */}
+            <div
+              className="absolute inset-0 top-8 bottom-4 pointer-events-none opacity-[0.06] z-0"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20 L25 15 L30 20 Z M60 20 C60 15, 70 15, 70 20 C70 25, 60 25, 60 20 Z M95 30 L105 30 L100 20 Z M30 70 A 8 8 0 1 0 30 86 A 8 8 0 1 0 30 70 Z M80 75 Q85 65, 95 75 T110 75 M15 100 L25 105 L20 115 Z' stroke='%23ffffff' stroke-width='1.5' fill='none'/%3E%3C/svg%3E")`,
+                backgroundSize: '120px 120px',
+              }}
+            />
 
-              {/* ========================================================================= */}
-              {/* SCREEN CONTENT: iOS vs Android                                            */}
-              {/* ========================================================================= */}
-              <div className="flex-1 relative overflow-hidden bg-[#0B141A] flex flex-col">
-                <AnimatePresence mode="wait">
-                  
-                  {/* ======================================================================= */}
-                  {/* ANDROID FLOW: (Exact match to uploaded screenshots 1, 2, 3)             */}
-                  {/* ======================================================================= */}
-                  {platform === 'android' && (
-                    <motion.div
-                      key={`android-${currentStep}`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="flex-1 flex flex-col justify-between relative"
-                    >
-                      {/* Android Header */}
-                      <div className="bg-[#111B21] border-b border-white/5 px-3 py-2 flex items-center justify-between z-10">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-amber-700/80 text-amber-200 font-bold text-[10px] flex items-center justify-center">
-                            D
-                          </div>
-                          <div>
-                            <h5 className="text-xs font-bold text-white leading-tight">
-                              Doğukan
-                            </h5>
-                          </div>
+            {/* SCREEN VIEWPORT: iOS vs Android */}
+            <div className="flex-1 relative overflow-hidden flex flex-col z-10">
+              <AnimatePresence mode="wait">
+                
+                {/* ========================================================================= */}
+                {/* ANDROID FLOW (Exact replica of User Screenshots 1, 2, 3)                */}
+                {/* ========================================================================= */}
+                {platform === 'android' && (
+                  <motion.div
+                    key={`android-step-${currentStep}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex-1 flex flex-col justify-between relative"
+                  >
+                    {/* Android WhatsApp Header */}
+                    <div className="bg-[#0B141A] px-3 py-2.5 flex items-center justify-between border-b border-white/5 shrink-0 z-20">
+                      <div className="flex items-center gap-2.5">
+                        <ChevronLeft className="w-4 h-4 text-slate-300" />
+                        <div className="w-8 h-8 rounded-full bg-[#A3704C] text-[#F3E5AB] font-bold text-xs flex items-center justify-center shadow-inner">
+                          MS
                         </div>
-
-                        <div className="flex items-center gap-3 text-slate-300 relative">
-                          <Video className="w-4 h-4" />
-                          <Phone className="w-3.5 h-3.5" />
-                          
-                          {/* 3 DOTS (Highlighted on Step 0) */}
-                          <div className={`p-1 rounded-full relative ${
-                            currentStep === 0 ? 'bg-sky-500/30 text-[#38BDF8]' : 'text-slate-300'
-                          }`}>
-                            <MoreVertical className="w-4 h-4" />
-
-                            {currentStep === 0 && (
-                              <motion.div
-                                initial={{ scale: 0, opacity: 1 }}
-                                animate={{ scale: 2.2, opacity: 0 }}
-                                transition={{ repeat: Infinity, duration: 1.2 }}
-                                className="absolute -inset-1.5 rounded-full border-2 border-[#38BDF8] pointer-events-none"
-                              />
-                            )}
-                          </div>
+                        <div>
+                          <h5 className="text-[13px] font-semibold text-white leading-tight">
+                            merve sarıcıvciv
+                          </h5>
                         </div>
                       </div>
 
-                      {/* Chat Messages Body */}
-                      <div className="p-3 space-y-2 flex-1 bg-[#0B141A] text-xs relative overflow-hidden">
+                      <div className="flex items-center gap-3.5 text-slate-200 relative">
+                        <Video className="w-4 h-4" />
+                        <Phone className="w-3.5 h-3.5" />
                         
-                        {/* Received message */}
-                        <div className="bg-[#202C33] p-2 rounded-xl rounded-tl-none max-w-[78%] space-y-0.5 shadow-sm text-slate-200">
-                          <p className="text-[11px]">Sohbeti dışa aktarmayı denedin mi kanka?</p>
-                          <span className="text-[8px] text-slate-400 block text-right">16:04</span>
+                        {/* 3 DOTS TRIGGER (Highlighted in Step 0) */}
+                        <div className="relative p-1">
+                          <MoreVertical className="w-4 h-4 text-slate-200" />
+
+                          {currentStep === 0 && (
+                            <SmallBlueCircleMarker className="-top-3 -right-2 w-11 h-11" />
+                          )}
                         </div>
+                      </div>
+                    </div>
 
-                        {/* Sent message */}
-                        <div className="bg-[#005C4B] p-2 rounded-xl rounded-tr-none max-w-[78%] ml-auto space-y-0.5 shadow-sm text-white">
-                          <p className="text-[11px]">Şimdi yapıyorum, 3 noktaya basıyorum</p>
-                          <span className="text-[8px] text-emerald-200 block text-right">16:04 ✓✓</span>
-                        </div>
-
-                        {/* Received message */}
-                        <div className="bg-[#202C33] p-2 rounded-xl rounded-tl-none max-w-[78%] space-y-0.5 shadow-sm text-slate-200">
-                          <p className="text-[11px]">Medyasız seçmeyi unutma hızlı olsun 🔥</p>
-                          <span className="text-[8px] text-slate-400 block text-right">16:05</span>
-                        </div>
-
-                        {/* ANDROID STEP 1: First Popup Menu ("Diğer ▸" highlighted) */}
-                        {currentStep === 1 && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: -10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            className="absolute top-1 right-2 w-48 bg-[#233138] rounded-2xl shadow-2xl border border-white/10 py-1.5 text-xs text-slate-200 z-30 divide-y divide-white/5"
-                          >
-                            <div className="py-0.5">
-                              <div className="px-3 py-1.5 opacity-60 text-[11px]">Yeni grup</div>
-                              <div className="px-3 py-1.5 opacity-60 text-[11px]">Kişiyi görüntüle</div>
-                              <div className="px-3 py-1.5 opacity-60 text-[11px]">Ara</div>
-                              <div className="px-3 py-1.5 opacity-60 text-[11px]">Medya, bağlantı ve belgeler</div>
-                              <div className="px-3 py-1.5 opacity-60 text-[11px]">Bildirimleri sessize al</div>
-                              <div className="px-3 py-1.5 opacity-60 text-[11px]">Süreli mesajlar</div>
-                              <div className="px-3 py-1.5 opacity-60 text-[11px]">Sohbet teması</div>
-                            </div>
-                            
-                            {/* TARGET: Diğer ▸ */}
-                            <div className="px-3 py-2 bg-[#00A884]/25 text-[#2DD4BF] font-extrabold flex items-center justify-between relative">
-                              <span className="text-xs">Diğer</span>
-                              <ChevronRight className="w-3.5 h-3.5" />
-                              
-                              <motion.div
-                                initial={{ scale: 0, opacity: 1 }}
-                                animate={{ scale: 1.8, opacity: 0 }}
-                                transition={{ repeat: Infinity, duration: 1.2 }}
-                                className="absolute inset-0 rounded-lg border-2 border-[#38BDF8] pointer-events-none"
-                              />
-                            </div>
-                          </motion.div>
-                        )}
-
-                        {/* ANDROID STEP 2: Second Sub-Menu ("Sohbeti dışa aktar" highlighted) */}
-                        {currentStep === 2 && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            className="absolute top-12 right-6 w-44 bg-[#233138] rounded-2xl shadow-2xl border border-white/10 py-1 text-xs text-slate-200 z-30"
-                          >
-                            <div className="px-3 py-1.5 opacity-60 text-[11px]">Şikayet et</div>
-                            <div className="px-3 py-1.5 opacity-60 text-[11px]">Engelle</div>
-                            <div className="px-3 py-1.5 opacity-60 text-[11px]">Sohbeti temizle</div>
-                            
-                            {/* TARGET: Sohbeti dışa aktar */}
-                            <div className="px-3 py-2 bg-[#00A884]/30 text-white font-black text-xs flex items-center justify-between relative rounded-lg border border-[#38BDF8]">
-                              <span>Sohbeti dışa aktar</span>
-                              
-                              <motion.div
-                                initial={{ scale: 0, opacity: 1 }}
-                                animate={{ scale: 1.8, opacity: 0 }}
-                                transition={{ repeat: Infinity, duration: 1.2 }}
-                                className="absolute inset-0 rounded-lg border-2 border-[#38BDF8] pointer-events-none"
-                              />
-                            </div>
-
-                            <div className="px-3 py-1.5 opacity-60 text-[11px]">Kısayol ekle</div>
-                            <div className="px-3 py-1.5 opacity-60 text-[11px]">Listeye ekle</div>
-                          </motion.div>
-                        )}
-
-                        {/* ANDROID STEP 3: "Medya eklensin mi?" Dialog ("MEDYASIZ" highlighted) */}
-                        {currentStep === 3 && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="absolute inset-0 bg-black/70 backdrop-blur-sm z-40 flex items-center justify-center p-3"
-                          >
-                            <div className="bg-[#233138] rounded-3xl p-4 border border-white/10 shadow-2xl space-y-3 w-full">
-                              <h4 className="text-xs font-bold text-white">Medya eklensin mi?</h4>
-                              <p className="text-[10px] text-slate-300 leading-relaxed">
-                                Medya eklemek sohbet dışa aktarma boyutunu artırır.
-                              </p>
-
-                              <div className="flex items-center justify-end gap-2 pt-2">
-                                <span className="text-[10px] text-slate-400 px-2 py-1">
-                                  MEDYAYI EKLE
-                                </span>
-                                <div className="px-3 py-1.5 rounded-xl bg-[#00A884] text-white font-black text-xs flex items-center gap-1 shadow-glow-emerald border-2 border-[#38BDF8] relative">
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  <span>MEDYASIZ</span>
-
-                                  <motion.div
-                                    initial={{ scale: 0, opacity: 1 }}
-                                    animate={{ scale: 1.8, opacity: 0 }}
-                                    transition={{ repeat: Infinity, duration: 1.2 }}
-                                    className="absolute inset-0 rounded-xl border-2 border-[#38BDF8] pointer-events-none"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-
+                    {/* Chat Messages Body */}
+                    <div className="p-3 space-y-2 flex-1 overflow-hidden relative text-xs">
+                      
+                      {/* Received Message 1 */}
+                      <div className="bg-[#1F2C34] p-2 rounded-2xl rounded-tl-none max-w-[82%] text-slate-200 shadow-sm space-y-0.5">
+                        <p className="text-[11px] leading-relaxed">Ay gozukmuyo acaba yapmadım mı</p>
+                        <span className="text-[8px] text-slate-400 block text-right">16:04</span>
                       </div>
 
-                      {/* Android Chat Input Bar */}
-                      <div className="p-2 bg-[#111B21] flex items-center gap-2 border-t border-white/5">
-                        <div className="flex-1 bg-[#202C33] rounded-full px-3 py-1.5 text-[11px] text-slate-400 flex items-center justify-between">
-                          <span>Mesaj</span>
-                          <div className="flex items-center gap-2 text-slate-400">
-                            <Paperclip className="w-3.5 h-3.5" />
-                            <Camera className="w-3.5 h-3.5" />
+                      {/* Sent with Quote */}
+                      <div className="bg-[#005C4B] p-2 rounded-2xl rounded-tr-none max-w-[82%] ml-auto text-white shadow-sm space-y-1">
+                        <div className="bg-[#025142] p-1.5 rounded-lg border-l-2 border-emerald-300 text-[9px] text-emerald-100">
+                          <span className="font-bold block text-emerald-200">Siz</span>
+                          <span>onda varmı</span>
+                        </div>
+                        <p className="text-[11px]">Bılmıyom dedi</p>
+                        <span className="text-[8px] text-emerald-200 block text-right">16:04 ✓✓</span>
+                      </div>
+
+                      {/* Sent 2 */}
+                      <div className="bg-[#005C4B] px-2.5 py-1.5 rounded-2xl rounded-tr-none max-w-[65%] ml-auto text-white shadow-sm flex items-center justify-between text-[11px]">
+                        <span>iki dakika</span>
+                        <span className="text-[8px] text-emerald-200 pl-2">16:04 ✓✓</span>
+                      </div>
+
+                      {/* Sent 3 */}
+                      <div className="bg-[#005C4B] px-2.5 py-1.5 rounded-2xl rounded-tr-none max-w-[65%] ml-auto text-white shadow-sm flex items-center justify-between text-[11px]">
+                        <span>alıksındır</span>
+                        <span className="text-[8px] text-emerald-200 pl-2">16:04 ✓✓</span>
+                      </div>
+
+                      {/* ANDROID STEP 1: Main Dropdown Menu with Hand-Drawn Circle around "Diğer" */}
+                      {currentStep === 1 && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.92, y: -8 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          className="absolute top-1 right-2 w-52 bg-[#1F2C34] rounded-xl shadow-2xl border border-white/10 py-1 text-xs text-slate-200 z-30 divide-y divide-white/5"
+                        >
+                          <div className="py-0.5">
+                            <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Yeni grup</div>
+                            <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Kişiyi görüntüle</div>
+                            <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Ara</div>
+                            <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Medya, bağlantı ve belgeler</div>
+                            <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Bildirimleri sessize al</div>
+                            <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Süreli mesajlar</div>
+                            <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Sohbet teması</div>
                           </div>
+                          
+                          {/* TARGET: Diğer with Blue Hand-Drawn Ring */}
+                          <div className="px-3.5 py-2.5 text-white font-bold text-[12px] flex items-center justify-between relative bg-white/5">
+                            <span>Diğer</span>
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                            
+                            <HandDrawnBlueMarker className="-inset-2 w-[110%] h-[160%]" />
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* ANDROID STEP 2: Secondary "Diğer" Menu with Hand-Drawn Circle around "Sohbeti dışa aktar" */}
+                      {currentStep === 2 && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.92, y: 5 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          className="absolute top-14 right-4 w-48 bg-[#1F2C34] rounded-xl shadow-2xl border border-white/10 py-1.5 text-xs text-slate-200 z-30 space-y-0.5"
+                        >
+                          <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Şikayet et</div>
+                          <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Engelle</div>
+                          <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Sohbeti temizle</div>
+                          
+                          {/* TARGET: Sohbeti dışa aktar with Hand-Drawn Blue Marker */}
+                          <div className="px-3.5 py-2 text-white font-bold text-[11.5px] relative bg-white/5">
+                            <span>Sohbeti dışa aktar</span>
+
+                            <HandDrawnBlueMarker className="-inset-2 w-[110%] h-[160%]" />
+                          </div>
+
+                          <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Kısayol ekle</div>
+                          <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Listeye ekle</div>
+                        </motion.div>
+                      )}
+
+                      {/* ANDROID STEP 3: "Medya eklensin mi?" Dialog */}
+                      {currentStep === 3 && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="absolute inset-0 bg-black/75 backdrop-blur-[2px] z-40 flex items-center justify-center p-3"
+                        >
+                          <div className="bg-[#1F2C34] rounded-3xl p-5 border border-white/10 shadow-2xl space-y-3.5 w-full max-w-[280px]">
+                            <h4 className="text-xs font-bold text-white">Medya eklensin mi?</h4>
+                            <p className="text-[10px] text-slate-300 leading-relaxed">
+                              Medya eklemek sohbet dışa aktarma boyutunu artırır.
+                            </p>
+
+                            <div className="flex items-center justify-end gap-3 pt-2">
+                              <span className="text-[10px] text-slate-400 font-semibold px-2 py-1">
+                                MEDYAYI EKLE
+                              </span>
+                              
+                              {/* TARGET: MEDYASIZ */}
+                              <div className="relative px-3 py-1.5 rounded-lg bg-[#00A884] text-white font-bold text-[11px] shadow-glow-emerald">
+                                <span>MEDYASIZ</span>
+                                <HandDrawnBlueMarker className="-inset-3 w-[130%] h-[180%]" />
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                    </div>
+
+                    {/* Android Chat Input Bar */}
+                    <div className="p-2 bg-[#0B141A] flex items-center gap-2 border-t border-white/5 shrink-0">
+                      <div className="flex-1 bg-[#1F2C34] rounded-full px-3 py-2 text-[11px] text-slate-400 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Smile className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Mesaj</span>
                         </div>
-                        <div className="w-8 h-8 rounded-full bg-[#00A884] text-white flex items-center justify-center">
-                          <Mic className="w-4 h-4" />
+                        <div className="flex items-center gap-2.5 text-slate-400">
+                          <Paperclip className="w-3.5 h-3.5" />
+                          <Camera className="w-3.5 h-3.5" />
                         </div>
                       </div>
-                    </motion.div>
-                  )}
+                      <div className="w-8 h-8 rounded-full bg-[#00A884] text-white flex items-center justify-center shadow-md">
+                        <Mic className="w-4 h-4" />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
 
-                  {/* ======================================================================= */}
-                  {/* iOS FLOW: (Exact match to uploaded screenshots 1, 2, 3, 4)              */}
-                  {/* ======================================================================= */}
-                  {platform === 'ios' && (
-                    <motion.div
-                      key={`ios-${currentStep}`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="flex-1 flex flex-col justify-between relative bg-[#000000]"
-                    >
-                      {/* iOS STEP 0: Chat Screen */}
-                      {currentStep === 0 && (
-                        <div className="flex-1 flex flex-col justify-between">
-                          {/* iOS Header */}
-                          <div className="bg-[#1C1C1E] border-b border-white/10 px-3 py-2 flex items-center justify-between">
-                            <div className="flex items-center gap-1 text-[#0A84FF] text-xs font-semibold">
-                              <ChevronLeft className="w-4 h-4 -mr-1" />
-                              <span>2</span>
+                {/* ========================================================================= */}
+                {/* iOS FLOW (Exact replica of User Screenshots 1, 2, 3, 4)                  */}
+                {/* ========================================================================= */}
+                {platform === 'ios' && (
+                  <motion.div
+                    key={`ios-step-${currentStep}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex-1 flex flex-col justify-between relative bg-black"
+                  >
+                    {/* iOS STEP 0: Chat Screen */}
+                    {currentStep === 0 && (
+                      <div className="flex-1 flex flex-col justify-between">
+                        {/* iOS Header with Hand-Drawn Marker on Name */}
+                        <div className="bg-[#161719] px-3 py-2 flex items-center justify-between border-b border-white/10 shrink-0">
+                          <div className="flex items-center gap-1 text-white text-xs font-semibold">
+                            <ChevronLeft className="w-4 h-4 -mr-1" />
+                            <span>2</span>
+                          </div>
+
+                          {/* Center: Tap Target for Contact Info */}
+                          <div className="flex items-center gap-2 relative">
+                            <div className="w-7 h-7 rounded-full bg-[#A3704C] text-[#F3E5AB] text-[10px] font-bold flex items-center justify-center">
+                              MS
+                            </div>
+                            <div className="text-left">
+                              <h5 className="text-xs font-bold text-white leading-tight">
+                                merve sarıcıvciv
+                              </h5>
+                              <span className="text-[8.5px] text-slate-400 block leading-tight">
+                                kişi bilgisi için dokunun
+                              </span>
                             </div>
 
-                            {/* Center: Tap Target for Contact Info */}
-                            <div className="flex items-center gap-2 relative cursor-pointer">
-                              <div className="w-7 h-7 rounded-full bg-amber-700/80 text-amber-200 text-[10px] font-bold flex items-center justify-center">
-                                D
-                              </div>
-                              <div className="text-left">
-                                <h5 className="text-xs font-bold text-white leading-tight">
-                                  Doğukan
-                                </h5>
-                                <span className="text-[8px] text-slate-400 block leading-tight">
-                                  kişi bilgisi için dokunun
-                                </span>
-                              </div>
+                            <HandDrawnBlueMarker className="-inset-3 w-[120%] h-[180%]" />
+                          </div>
 
-                              <motion.div
-                                initial={{ scale: 0, opacity: 1 }}
-                                animate={{ scale: 2.2, opacity: 0 }}
-                                transition={{ repeat: Infinity, duration: 1.2 }}
-                                className="absolute -inset-1.5 rounded-xl border-2 border-[#38BDF8] pointer-events-none"
-                              />
+                          <div className="flex items-center gap-2 text-white">
+                            <div className="w-7 h-6 rounded-lg bg-white/10 flex items-center justify-center">
+                              <Video className="w-3.5 h-3.5" />
                             </div>
-
-                            <div className="flex items-center gap-2.5 text-[#0A84FF]">
-                              <Video className="w-4 h-4" />
+                            <div className="w-7 h-6 rounded-lg bg-white/10 flex items-center justify-center">
                               <Phone className="w-3.5 h-3.5" />
                             </div>
                           </div>
+                        </div>
 
-                          {/* Chat Bubbles */}
-                          <div className="p-3 space-y-2 flex-1 bg-[#000000] text-xs">
-                            <div className="bg-[#1C1C1E] p-2 rounded-2xl rounded-tl-none max-w-[78%] space-y-0.5 text-white">
-                              <p className="text-[11px]">Sohbeti dışa aktaralım mı?</p>
-                              <span className="text-[8px] text-slate-400 block text-right">16:04</span>
-                            </div>
-
-                            <div className="bg-[#3D2C24] p-2 rounded-2xl rounded-tr-none max-w-[78%] ml-auto space-y-0.5 text-white">
-                              <p className="text-[11px]">Profilime dokun en alta in</p>
-                              <span className="text-[8px] text-slate-300 block text-right">16:04 ✓✓</span>
-                            </div>
+                        {/* Chat Messages */}
+                        <div className="p-3 space-y-2 flex-1 text-xs">
+                          <div className="bg-[#1C1C1E] p-2 rounded-2xl rounded-tl-none max-w-[80%] text-slate-200">
+                            <p className="text-[11px]">Ay gozukmuyo acaba yapmadım mı</p>
+                            <span className="text-[8px] text-slate-400 block text-right">16:04</span>
                           </div>
 
-                          {/* iOS Chat Input Bar */}
-                          <div className="p-2 bg-[#1C1C1E] flex items-center gap-2 border-t border-white/10">
-                            <Plus className="w-4 h-4 text-[#0A84FF]" />
-                            <div className="flex-1 bg-[#2C2C2E] rounded-full px-3 py-1 text-[11px] text-slate-400 flex items-center justify-between">
-                              <span />
-                              <Sticker className="w-3.5 h-3.5 text-slate-400" />
-                            </div>
-                            <Camera className="w-4 h-4 text-[#0A84FF]" />
-                            <Mic className="w-4 h-4 text-[#0A84FF]" />
+                          <div className="bg-[#3A2922] p-2 rounded-2xl rounded-tr-none max-w-[80%] ml-auto text-white">
+                            <p className="text-[11px]">bakaydı</p>
+                            <span className="text-[8px] text-slate-300 block text-right">16:04 ✓✓</span>
                           </div>
                         </div>
-                      )}
 
-                      {/* iOS STEP 1: Contact Info Page - Top Section (Animated Scroll Down) */}
-                      {currentStep === 1 && (
-                        <div className="flex-1 flex flex-col justify-between bg-[#000000] p-3 space-y-3">
-                          <div className="flex items-center justify-between text-xs">
-                            <div className="w-6 h-6 rounded-full bg-[#1C1C1E] flex items-center justify-center text-white">
-                              <ChevronLeft className="w-4 h-4" />
-                            </div>
-                            <span className="font-bold text-white text-xs">Kişi bilgisi</span>
-                            <span className="bg-[#1C1C1E] text-white px-2 py-0.5 rounded-full text-[10px]">Düzenle</span>
+                        {/* iOS Input Bar */}
+                        <div className="p-2 bg-[#161719] flex items-center gap-2 border-t border-white/10 shrink-0">
+                          <Plus className="w-5 h-5 text-white" />
+                          <div className="flex-1 bg-[#242528] rounded-full px-3 py-1.5 text-[11px] text-slate-400 flex items-center justify-between">
+                            <span />
+                            <Sticker className="w-3.5 h-3.5 text-slate-400" />
                           </div>
-
-                          {/* Profile Avatar & Name */}
-                          <div className="text-center space-y-1">
-                            <div className="w-14 h-14 rounded-full bg-amber-700/80 text-amber-200 text-xl font-bold flex items-center justify-center mx-auto shadow-md">
-                              D
-                            </div>
-                            <h4 className="text-sm font-bold text-white">Doğukan</h4>
-                            <p className="text-[10px] text-slate-400">+90 551 639 33 69</p>
-                          </div>
-
-                          {/* Call / Video / Search 3 Circle Buttons */}
-                          <div className="grid grid-cols-3 gap-2">
-                            <div className="p-2 rounded-2xl bg-[#1C1C1E] text-center text-[10px] text-emerald-400 space-y-1">
-                              <Phone className="w-4 h-4 mx-auto" />
-                              <span className="text-white block text-[9px]">Sesli</span>
-                            </div>
-                            <div className="p-2 rounded-2xl bg-[#1C1C1E] text-center text-[10px] text-emerald-400 space-y-1">
-                              <Video className="w-4 h-4 mx-auto" />
-                              <span className="text-white block text-[9px]">Görüntülü</span>
-                            </div>
-                            <div className="p-2 rounded-2xl bg-[#1C1C1E] text-center text-[10px] text-emerald-400 space-y-1">
-                              <Search className="w-4 h-4 mx-auto" />
-                              <span className="text-white block text-[9px]">Ara</span>
-                            </div>
-                          </div>
-
-                          {/* First Group List Card */}
-                          <div className="bg-[#1C1C1E] rounded-2xl p-2.5 space-y-2 text-[11px] text-slate-200">
-                            <div className="flex items-center justify-between pb-1 border-b border-white/5">
-                              <span>Medya, bağlantı ve belgeler</span>
-                              <span className="text-slate-400 text-[10px]">150 ➔</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span>Depolama alanını yönet</span>
-                              <span className="text-slate-400 text-[10px]">64,8 MB ➔</span>
-                            </div>
-                          </div>
-
-                          {/* Scroll Down Indicator */}
-                          <motion.div
-                            animate={{ y: [0, 6, 0] }}
-                            transition={{ repeat: Infinity, duration: 1.5 }}
-                            className="text-center text-[10px] font-mono text-[#38BDF8] font-bold bg-[#1C1C1E] py-1.5 rounded-xl border border-[#38BDF8]/40"
-                          >
-                            ⬇️ Aşağı Kaydırın (Scroll Down)
-                          </motion.div>
+                          <Camera className="w-4 h-4 text-white" />
+                          <Mic className="w-4 h-4 text-white" />
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {/* iOS STEP 2: Contact Info Page - Bottom Section ("Sohbeti dışa aktar" highlighted) */}
-                      {currentStep === 2 && (
-                        <div className="flex-1 flex flex-col justify-between bg-[#000000] p-3 space-y-2">
-                          <div className="flex items-center justify-between text-xs pb-1">
-                            <div className="w-6 h-6 rounded-full bg-[#1C1C1E] flex items-center justify-center text-white">
-                              <ChevronLeft className="w-4 h-4" />
-                            </div>
-                            <span className="font-bold text-white text-xs">Doğukan</span>
-                            <span className="bg-[#1C1C1E] text-white px-2 py-0.5 rounded-full text-[10px]">Düzenle</span>
+                    {/* iOS STEP 1: Contact Info Page - Top Section & Scroll Down Indicator */}
+                    {currentStep === 1 && (
+                      <div className="flex-1 flex flex-col justify-between bg-black p-3 space-y-2.5 overflow-hidden">
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="w-6 h-6 rounded-full bg-[#1C1C1E] flex items-center justify-center text-white">
+                            <ChevronLeft className="w-4 h-4" />
                           </div>
+                          <span className="font-bold text-white text-xs">Kişi bilgisi</span>
+                          <span className="bg-[#1C1C1E] text-white px-2.5 py-0.5 rounded-full text-[10px]">Düzenle</span>
+                        </div>
 
-                          <div className="text-[10px] text-slate-400 font-bold px-1">2 ortak grup</div>
-
-                          {/* Group Cards */}
-                          <div className="bg-[#1C1C1E] rounded-2xl p-2 text-[10px] space-y-1.5">
-                            <div className="flex items-center gap-2 text-white">
-                              <Users className="w-3.5 h-3.5 text-pink-400" />
-                              <span>EFE KURS 2026 SINAV GRUBU</span>
-                            </div>
+                        {/* Profile Avatar & Name */}
+                        <div className="text-center space-y-1">
+                          <div className="w-14 h-14 rounded-full bg-[#A3704C] text-[#F3E5AB] text-xl font-bold flex items-center justify-center mx-auto shadow-md">
+                            MS
                           </div>
+                          <h4 className="text-xs font-bold text-white">merve sarıcıvciv</h4>
+                          <p className="text-[9px] text-slate-400">+90 551 639 33 69</p>
+                        </div>
 
-                          {/* Actions Card */}
-                          <div className="bg-[#1C1C1E] rounded-2xl divide-y divide-white/5 text-[11px]">
-                            <div className="p-2 text-emerald-400">Kişiyi paylaş</div>
-                            <div className="p-2 text-emerald-400">Favoriler'e ekle</div>
-                            
-                            {/* TARGET: Sohbeti dışa aktar */}
-                            <div className="p-2.5 bg-[#0A84FF]/25 text-white font-extrabold flex items-center justify-between border-2 border-[#38BDF8] rounded-xl relative">
-                              <span>Sohbeti dışa aktar</span>
-                              <span className="text-[9px] bg-[#0A84FF] text-white px-2 py-0.5 rounded-md">DOKUNUN 👆</span>
-
-                              <motion.div
-                                initial={{ scale: 0, opacity: 1 }}
-                                animate={{ scale: 1.8, opacity: 0 }}
-                                transition={{ repeat: Infinity, duration: 1.2 }}
-                                className="absolute inset-0 rounded-xl border-2 border-[#38BDF8] pointer-events-none"
-                              />
-                            </div>
-
-                            <div className="p-2 text-red-400 opacity-60">Sohbeti temizle</div>
+                        {/* 3 Green Action Buttons (Sesli, Görüntülü, Ara) */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="p-2 rounded-2xl bg-[#1C1C1E] text-center text-[9px] text-emerald-400 space-y-0.5">
+                            <Phone className="w-3.5 h-3.5 mx-auto" />
+                            <span className="text-white block">Sesli</span>
                           </div>
-
-                          {/* Red Block Cards */}
-                          <div className="bg-[#1C1C1E] rounded-2xl p-2 text-[10px] text-red-500 space-y-1 opacity-70">
-                            <div>Doğukan kişisini engelle</div>
+                          <div className="p-2 rounded-2xl bg-[#1C1C1E] text-center text-[9px] text-emerald-400 space-y-0.5">
+                            <Video className="w-3.5 h-3.5 mx-auto" />
+                            <span className="text-white block">Görüntülü</span>
+                          </div>
+                          <div className="p-2 rounded-2xl bg-[#1C1C1E] text-center text-[9px] text-emerald-400 space-y-0.5">
+                            <Search className="w-3.5 h-3.5 mx-auto" />
+                            <span className="text-white block">Ara</span>
                           </div>
                         </div>
-                      )}
 
-                      {/* iOS STEP 3: Action Sheet Modal ("Medyayı ekleme" highlighted) */}
-                      {currentStep === 3 && (
-                        <div className="flex-1 flex flex-col justify-end bg-black/80 backdrop-blur-sm p-3 relative">
+                        {/* List Cards */}
+                        <div className="bg-[#1C1C1E] rounded-2xl p-2.5 text-[10px] text-slate-200 divide-y divide-white/5 space-y-1.5">
+                          <div className="flex items-center justify-between pb-1">
+                            <span>Medya, bağlantı ve belgeler</span>
+                            <span className="text-slate-400 text-[9px]">150 ➔</span>
+                          </div>
+                          <div className="flex items-center justify-between pt-1">
+                            <span>Depolama alanını yönet</span>
+                            <span className="text-slate-400 text-[9px]">64,8 MB ➔</span>
+                          </div>
+                        </div>
+
+                        {/* Animated Scroll Down Prompt */}
+                        <motion.div
+                          animate={{ y: [0, 5, 0] }}
+                          transition={{ repeat: Infinity, duration: 1.2 }}
+                          className="text-center py-2 px-3 rounded-2xl bg-[#1C1C1E] border border-sky-400/40 text-[10px] font-mono font-bold text-sky-400 flex items-center justify-center gap-1.5 shadow-glow-blue"
+                        >
+                          <span>⬇️ Aşağı Kaydırın (Scroll Down)</span>
+                        </motion.div>
+                      </div>
+                    )}
+
+                    {/* iOS STEP 2: Contact Info Page - Bottom Section with "Sohbeti dışa aktar" Highlight */}
+                    {currentStep === 2 && (
+                      <div className="flex-1 flex flex-col justify-between bg-black p-3 space-y-2">
+                        <div className="flex items-center justify-between text-xs pb-1">
+                          <div className="w-6 h-6 rounded-full bg-[#1C1C1E] flex items-center justify-center text-white">
+                            <ChevronLeft className="w-4 h-4" />
+                          </div>
+                          <span className="font-bold text-white text-xs">merve sarıcıvciv</span>
+                          <span className="bg-[#1C1C1E] text-white px-2 py-0.5 rounded-full text-[10px]">Düzenle</span>
+                        </div>
+
+                        <div className="text-[10px] text-slate-400 font-bold px-1">2 ortak grup</div>
+
+                        <div className="bg-[#1C1C1E] rounded-2xl p-2 text-[10px] space-y-1">
+                          <div className="flex items-center gap-2 text-white">
+                            <Users className="w-3.5 h-3.5 text-pink-400" />
+                            <span>EFE KURS 2026 SINAV GRUBU</span>
+                          </div>
+                        </div>
+
+                        {/* Actions List with Blue Hand-Drawn Ring */}
+                        <div className="bg-[#1C1C1E] rounded-2xl divide-y divide-white/5 text-[11px]">
+                          <div className="p-2 text-emerald-400">Kişiyi paylaş</div>
+                          <div className="p-2 text-emerald-400">Favoriler'e ekle</div>
+                          <div className="p-2 text-emerald-400">Listeye ekle</div>
                           
-                          {/* Bottom Action Sheet Card (Exact replica of Image 4) */}
-                          <motion.div
-                            initial={{ y: 50, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            className="bg-[#1C1C1E] rounded-3xl p-4 border border-white/10 space-y-3 mb-2"
-                          >
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-xs font-bold text-white">Sohbeti dışa aktar</h4>
-                              <div className="w-6 h-6 rounded-full bg-[#2C2C2E] flex items-center justify-center text-slate-400">
-                                <X className="w-3.5 h-3.5" />
-                              </div>
-                            </div>
+                          {/* TARGET: Sohbeti dışa aktar */}
+                          <div className="p-2.5 text-white font-bold relative bg-white/5">
+                            <span>Sohbeti dışa aktar</span>
+                            <HandDrawnBlueMarker className="-inset-2.5 w-[115%] h-[170%]" />
+                          </div>
 
-                            <p className="text-[10px] text-slate-400 leading-snug">
-                              Medya eklemek daha büyük bir sohbet arşivi yaratır.
-                            </p>
-
-                            <div className="space-y-2 pt-1">
-                              {/* Option 1: Medya ekle */}
-                              <div className="p-2.5 rounded-2xl bg-[#2C2C2E] text-slate-400 text-xs flex items-center gap-2 opacity-60">
-                                <ImageIcon className="w-4 h-4" />
-                                <span>Medya ekle</span>
-                              </div>
-
-                              {/* Option 2: Medyayı ekleme (TARGET) */}
-                              <div className="p-3 rounded-2xl bg-gradient-to-r from-[#0A84FF] to-sky-500 text-white font-black text-xs flex items-center justify-between border-2 border-white shadow-glow-blue relative">
-                                <div className="flex items-center gap-2">
-                                  <FileText className="w-4 h-4 text-white" />
-                                  <span>Medyayı ekleme</span>
-                                </div>
-                                <span className="text-[9px] bg-black/40 px-2 py-0.5 rounded-full font-mono">
-                                  DOĞRU SEÇİM ✓
-                                </span>
-
-                                <motion.div
-                                  initial={{ scale: 0, opacity: 1 }}
-                                  animate={{ scale: 1.8, opacity: 0 }}
-                                  transition={{ repeat: Infinity, duration: 1.2 }}
-                                  className="absolute inset-0 rounded-2xl border-2 border-white pointer-events-none"
-                                />
-                              </div>
-                            </div>
-                          </motion.div>
+                          <div className="p-2 text-red-400 opacity-70">Sohbeti temizle</div>
                         </div>
-                      )}
 
-                    </motion.div>
-                  )}
+                        <div className="bg-[#1C1C1E] rounded-2xl p-2 text-[10px] text-red-500 opacity-70">
+                          <div>merve sarıcıvciv kişisini engelle</div>
+                        </div>
+                      </div>
+                    )}
 
-                </AnimatePresence>
-              </div>
+                    {/* iOS STEP 3: Action Sheet Modal ("Medyayı ekleme" Highlighted) */}
+                    {currentStep === 3 && (
+                      <div className="flex-1 flex flex-col justify-end bg-black/85 backdrop-blur-[2px] p-3 relative">
+                        
+                        {/* iOS Bottom Sheet (Exact replica of Image 4) */}
+                        <motion.div
+                          initial={{ y: 60, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          className="bg-[#1C1C1E] rounded-3xl p-4 border border-white/10 space-y-3 mb-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-bold text-white">Sohbeti dışa aktar</h4>
+                            <div className="w-6 h-6 rounded-full bg-[#2C2C2E] flex items-center justify-center text-slate-400">
+                              <X className="w-3.5 h-3.5" />
+                            </div>
+                          </div>
 
-              {/* Home Indicator Bar */}
-              <div className="h-4 bg-[#0B141A] flex items-center justify-center pb-1">
-                <div className="w-28 h-1 bg-slate-600 rounded-full" />
-              </div>
+                          <p className="text-[10px] text-slate-400 leading-snug">
+                            Medya eklemek daha büyük bir sohbet arşivi yaratır.
+                          </p>
 
+                          <div className="space-y-2 pt-1">
+                            {/* Option 1: Medya ekle */}
+                            <div className="p-2.5 rounded-2xl bg-[#2C2C2E] text-slate-400 text-xs flex items-center gap-2 opacity-60">
+                              <ImageIcon className="w-4 h-4" />
+                              <span>Medya ekle</span>
+                            </div>
+
+                            {/* Option 2: Medyayı ekleme (TARGET with Blue Hand-Drawn Ring) */}
+                            <div className="p-3 rounded-2xl bg-[#2C2C2E] text-white font-bold text-xs flex items-center justify-between relative">
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-white" />
+                                <span>Medyayı ekleme</span>
+                              </div>
+
+                              <HandDrawnBlueMarker className="-inset-3 w-[120%] h-[180%]" />
+                            </div>
+                          </div>
+                        </motion.div>
+                      </div>
+                    )}
+
+                  </motion.div>
+                )}
+
+              </AnimatePresence>
+            </div>
+
+            {/* Bottom Home Bar Indicator */}
+            <div className="h-4 bg-black flex items-center justify-center pb-1 shrink-0">
+              <div className="w-28 h-1 bg-slate-600 rounded-full" />
             </div>
 
           </div>
@@ -732,6 +670,27 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
         </div>
 
       </div>
+
+      {/* Bottom Quick Upload Action */}
+      {onUploadClick && (
+        <div className="mt-8 text-center relative z-10">
+          <Button
+            variant="blue"
+            size="lg"
+            onClick={onUploadClick}
+            className="font-bold text-sm shadow-glow-blue px-8 py-3.5"
+          >
+            <Sparkles className="w-4 h-4 text-black" />
+            <span>Hazırım, WhatsApp Sohbetini Yükle</span>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+
+          <p className="text-[11px] text-slate-500 font-mono mt-2 flex items-center justify-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>%100 Güvenli • Verileriniz sunucuda asla saklanmaz</span>
+          </p>
+        </div>
+      )}
 
     </section>
   );
