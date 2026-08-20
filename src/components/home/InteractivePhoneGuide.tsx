@@ -8,8 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreVertical,
-  Play,
-  Pause,
   Phone,
   Video,
   Search,
@@ -22,13 +20,6 @@ import {
   FileText,
   Users,
   Image as ImageIcon,
-  HardDrive,
-  Star,
-  Bell,
-  Palette,
-  UserPlus,
-  Heart,
-  ListPlus,
   Sticker,
   Sparkles,
   ShieldCheck,
@@ -39,90 +30,75 @@ interface InteractivePhoneGuideProps {
   onUploadClick?: () => void;
 }
 
-// Hand-drawn blue marker highlight component (like the user drew on screenshots)
-const HandDrawnBlueMarker: React.FC<{ className?: string }> = ({ className = '' }) => (
+// Clean hand-drawn glowing blue marker border that encapsulates text without covering it
+const BlueCapsuleMarker: React.FC<{ className?: string }> = ({ className = '' }) => (
   <svg
-    viewBox="0 0 160 60"
+    viewBox="0 0 160 50"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    className={`absolute pointer-events-none drop-shadow-[0_0_8px_rgba(37,99,235,0.8)] ${className}`}
+    className={`absolute pointer-events-none drop-shadow-[0_0_10px_rgba(59,130,246,0.9)] ${className}`}
+    preserveAspectRatio="none"
   >
     <motion.path
-      d="M12 28 C 10 12, 50 6, 95 8 C 140 10, 155 22, 150 38 C 145 52, 105 56, 60 54 C 25 52, 6 42, 16 24 C 22 14, 60 10, 105 12"
-      stroke="#2563eb"
-      strokeWidth="3.5"
+      d="M15 8 C 50 4, 110 5, 145 10 C 158 13, 158 37, 142 42 C 105 46, 55 45, 15 40 C 2 37, 2 13, 18 8 Z"
+      stroke="#3B82F6"
+      strokeWidth="3"
       strokeLinecap="round"
       strokeLinejoin="round"
       initial={{ pathLength: 0, opacity: 0 }}
       animate={{ pathLength: 1, opacity: 1 }}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
+      transition={{ duration: 0.45, ease: 'easeOut' }}
     />
   </svg>
 );
 
-const SmallBlueCircleMarker: React.FC<{ className?: string }> = ({ className = '' }) => (
+const BlueCircleMarker: React.FC<{ className?: string }> = ({ className = '' }) => (
   <svg
-    viewBox="0 0 50 50"
+    viewBox="0 0 48 48"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    className={`absolute pointer-events-none drop-shadow-[0_0_8px_rgba(37,99,235,0.9)] ${className}`}
+    className={`absolute pointer-events-none drop-shadow-[0_0_10px_rgba(59,130,246,0.95)] ${className}`}
   >
-    <motion.path
-      d="M25 6 C 36 5, 45 14, 44 26 C 43 38, 33 46, 20 44 C 9 42, 4 31, 7 19 C 10 9, 21 5, 34 6"
-      stroke="#2563eb"
-      strokeWidth="4"
+    <motion.ellipse
+      cx="24"
+      cy="24"
+      rx="18"
+      ry="18"
+      stroke="#3B82F6"
+      strokeWidth="3.2"
       strokeLinecap="round"
-      strokeLinejoin="round"
       initial={{ pathLength: 0, opacity: 0 }}
       animate={{ pathLength: 1, opacity: 1 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
     />
   </svg>
 );
 
 export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ onUploadClick }) => {
-  const [platform, setPlatform] = useState<'ios' | 'android'>('android');
+  const [platform, setPlatform] = useState<'android' | 'ios'>('android');
   const [currentStep, setCurrentStep] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>(true);
 
-  const stepTitles = {
-    android: [
-      '1. Adım: Sağ üstteki üç dikey noktaya (⋮) dokunun',
-      '2. Adım: Menünün en altındaki "Diğer ▸" seçeneğine dokunun',
-      '3. Adım: Açılan alt menüden "Sohbeti dışa aktar" butonuna dokunun',
-      '4. Adım: Ekrana gelen uyarıda yeşil "MEDYASIZ" butonuna basın',
-    ],
-    ios: [
-      '1. Adım: Üstteki kişi / grup adına (Doğukan) dokunun',
-      '2. Adım: Açılan Kişi Bilgisi sayfasında en alta kaydırın (Scroll Down)',
-      '3. Adım: En alttaki seçeneklerden "Sohbeti dışa aktar" butonuna dokunun',
-      '4. Adım: Alttan açılan pencerede "Medyayı ekleme" seçeneğini seçin',
-    ],
-  };
-
-  // Continuous loop animation
+  // Seamless continuous video-like flow (no pauses, constantly advancing)
   useEffect(() => {
-    if (!isPlaying) return;
-
     const timer = setInterval(() => {
       setCurrentStep((prev) => (prev + 1) % 4);
-    }, 4500);
+    }, 3800);
 
     return () => clearInterval(timer);
-  }, [isPlaying, platform]);
+  }, [platform]);
 
   return (
     <section className="relative rounded-3xl bg-gradient-to-b from-[#0B0F14] via-[#080B0F] to-[#040608] border border-white/10 p-6 sm:p-12 shadow-2xl overflow-hidden font-sans">
       
-      {/* Background glow */}
+      {/* Background ambient glow */}
       <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-[#2563eb]/20 via-[#00A884]/15 to-transparent rounded-full blur-[130px] pointer-events-none" />
 
       {/* Header section */}
-      <div className="text-center max-w-2xl mx-auto space-y-4 mb-8 relative z-10">
+      <div className="text-center max-w-2xl mx-auto space-y-4 mb-6 relative z-10">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-sky-400/30 shadow-glow-blue">
           <Smartphone className="w-3.5 h-3.5 text-sky-400" />
           <span className="text-[11px] font-mono font-bold text-sky-300 uppercase tracking-wider">
-            WhatsApp Dışa Aktarma Canlı Simülatörü
+            WhatsApp Dışa Aktarma Canlı Rehberi
           </span>
         </div>
 
@@ -130,7 +106,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
           WhatsApp Sohbetinizi Nasıl Dışa Aktarırsınız?
         </h2>
         <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-          Aşağıdaki telefondan <strong>{platform === 'android' ? 'Android' : 'iPhone (iOS)'}</strong> cihazınızdaki orijinal WhatsApp adımlarını canlı olarak izleyin.
+          {platform === 'android' ? 'Android' : 'iPhone (iOS)'} cihazınızdaki gerçek ekran akışını canlı animasyon ile izleyin.
         </p>
 
         {/* Platform selection pills */}
@@ -142,7 +118,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                 setPlatform('android');
                 setCurrentStep(0);
               }}
-              className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-6 py-2 rounded-xl text-xs font-bold transition-all ${
                 platform === 'android'
                   ? 'bg-[#00A884] text-white shadow-[0_0_15px_rgba(0,168,132,0.4)]'
                   : 'text-slate-400 hover:text-white'
@@ -158,7 +134,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                 setPlatform('ios');
                 setCurrentStep(0);
               }}
-              className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-6 py-2 rounded-xl text-xs font-bold transition-all ${
                 platform === 'ios'
                   ? 'bg-[#0A84FF] text-white shadow-[0_0_15px_rgba(10,132,255,0.4)]'
                   : 'text-slate-400 hover:text-white'
@@ -168,65 +144,11 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
               <span>iPhone (iOS)</span>
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-slate-300 hover:text-white transition-all flex items-center gap-1.5"
-            title={isPlaying ? 'Animasyonu Duraklat' : 'Animasyonu Oynat'}
-          >
-            {isPlaying ? (
-              <>
-                <Pause className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400 font-semibold text-[11px]">Canlı Video</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-3.5 h-3.5 text-sky-400" />
-                <span className="text-[11px]">Oynat</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Step Indicator Header (Above Phone) */}
-      <div className="max-w-md mx-auto mb-6 text-center relative z-10">
-        <div className="p-3 rounded-2xl bg-[#131920] border border-white/10 shadow-lg">
-          <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-2 px-1">
-            <span className="font-bold text-sky-400">Adım {currentStep + 1} / 4</span>
-            <span>{platform === 'android' ? 'Android WhatsApp' : 'iOS WhatsApp'}</span>
-          </div>
-          
-          <p className="text-xs sm:text-sm font-bold text-white leading-snug">
-            {stepTitles[platform][currentStep]}
-          </p>
-
-          {/* Progress dots / bars */}
-          <div className="grid grid-cols-4 gap-1.5 mt-2.5">
-            {[0, 1, 2, 3].map((stepIdx) => (
-              <button
-                key={stepIdx}
-                type="button"
-                onClick={() => {
-                  setCurrentStep(stepIdx);
-                  setIsPlaying(false);
-                }}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  currentStep === stepIdx
-                    ? platform === 'android'
-                      ? 'bg-[#00A884] shadow-[0_0_8px_rgba(0,168,132,0.8)]'
-                      : 'bg-[#0A84FF] shadow-[0_0_8px_rgba(10,132,255,0.8)]'
-                    : 'bg-white/15 hover:bg-white/30'
-                }`}
-              />
-            ))}
-          </div>
         </div>
       </div>
 
       {/* CENTERED ULTRA-REALISTIC PHONE MOCKUP */}
-      <div className="flex justify-center items-center relative z-10 max-w-xl mx-auto">
+      <div className="flex justify-center items-center relative z-10 max-w-xl mx-auto my-2">
         
         {/* Phone Outer Chassis */}
         <div className="w-[325px] sm:w-[365px] h-[640px] sm:h-[680px] rounded-[52px] bg-[#171B21] p-3.5 shadow-[0_25px_70px_rgba(0,0,0,0.85)] border-[5px] border-[#2B323D] relative select-none">
@@ -255,7 +177,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
 
             {/* SVG WhatsApp Doodle Wallpaper Pattern */}
             <div
-              className="absolute inset-0 top-8 bottom-4 pointer-events-none opacity-[0.06] z-0"
+              className="absolute inset-0 top-8 bottom-4 pointer-events-none opacity-[0.07] z-0"
               style={{
                 backgroundImage: `url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20 L25 15 L30 20 Z M60 20 C60 15, 70 15, 70 20 C70 25, 60 25, 60 20 Z M95 30 L105 30 L100 20 Z M30 70 A 8 8 0 1 0 30 86 A 8 8 0 1 0 30 70 Z M80 75 Q85 65, 95 75 T110 75 M15 100 L25 105 L20 115 Z' stroke='%23ffffff' stroke-width='1.5' fill='none'/%3E%3C/svg%3E")`,
                 backgroundSize: '120px 120px',
@@ -275,7 +197,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.25 }}
                     className="flex-1 flex flex-col justify-between relative"
                   >
                     {/* Android WhatsApp Header */}
@@ -296,12 +218,12 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                         <Video className="w-4 h-4" />
                         <Phone className="w-3.5 h-3.5" />
                         
-                        {/* 3 DOTS TRIGGER (Highlighted in Step 0) */}
-                        <div className="relative p-1">
-                          <MoreVertical className="w-4 h-4 text-slate-200" />
+                        {/* 3 DOTS TRIGGER (Highlighted cleanly with Blue Circle Marker) */}
+                        <div className="relative p-1 flex items-center justify-center">
+                          <MoreVertical className="w-4 h-4 text-slate-200 relative z-10" />
 
                           {currentStep === 0 && (
-                            <SmallBlueCircleMarker className="-top-3 -right-2 w-11 h-11" />
+                            <BlueCircleMarker className="-inset-2.5 w-9 h-9" />
                           )}
                         </div>
                       </div>
@@ -338,10 +260,10 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                         <span className="text-[8px] text-emerald-200 pl-2">16:04 ✓✓</span>
                       </div>
 
-                      {/* ANDROID STEP 1: Main Dropdown Menu with Hand-Drawn Circle around "Diğer" */}
+                      {/* ANDROID STEP 1: Main Dropdown Menu with Clean Blue Marker around "Diğer" */}
                       {currentStep === 1 && (
                         <motion.div
-                          initial={{ opacity: 0, scale: 0.92, y: -8 }}
+                          initial={{ opacity: 0, scale: 0.94, y: -8 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           className="absolute top-1 right-2 w-52 bg-[#1F2C34] rounded-xl shadow-2xl border border-white/10 py-1 text-xs text-slate-200 z-30 divide-y divide-white/5"
                         >
@@ -355,20 +277,20 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                             <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Sohbet teması</div>
                           </div>
                           
-                          {/* TARGET: Diğer with Blue Hand-Drawn Ring */}
-                          <div className="px-3.5 py-2.5 text-white font-bold text-[12px] flex items-center justify-between relative bg-white/5">
-                            <span>Diğer</span>
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                          {/* TARGET: Diğer with Blue Capsule Marker */}
+                          <div className="px-3.5 py-2.5 text-white font-bold text-[12px] flex items-center justify-between relative">
+                            <span className="relative z-10">Diğer</span>
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400 relative z-10" />
                             
-                            <HandDrawnBlueMarker className="-inset-2 w-[110%] h-[160%]" />
+                            <BlueCapsuleMarker className="-inset-x-2 -inset-y-1.5 w-[calc(100%+16px)] h-[calc(100%+12px)]" />
                           </div>
                         </motion.div>
                       )}
 
-                      {/* ANDROID STEP 2: Secondary "Diğer" Menu with Hand-Drawn Circle around "Sohbeti dışa aktar" */}
+                      {/* ANDROID STEP 2: Secondary "Diğer" Menu with Blue Marker around "Sohbeti dışa aktar" */}
                       {currentStep === 2 && (
                         <motion.div
-                          initial={{ opacity: 0, scale: 0.92, y: 5 }}
+                          initial={{ opacity: 0, scale: 0.94, y: 5 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           className="absolute top-14 right-4 w-48 bg-[#1F2C34] rounded-xl shadow-2xl border border-white/10 py-1.5 text-xs text-slate-200 z-30 space-y-0.5"
                         >
@@ -376,11 +298,11 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                           <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Engelle</div>
                           <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Sohbeti temizle</div>
                           
-                          {/* TARGET: Sohbeti dışa aktar with Hand-Drawn Blue Marker */}
-                          <div className="px-3.5 py-2 text-white font-bold text-[11.5px] relative bg-white/5">
-                            <span>Sohbeti dışa aktar</span>
+                          {/* TARGET: Sohbeti dışa aktar with Blue Capsule Marker */}
+                          <div className="px-3.5 py-2 text-white font-bold text-[11.5px] relative">
+                            <span className="relative z-10">Sohbeti dışa aktar</span>
 
-                            <HandDrawnBlueMarker className="-inset-2 w-[110%] h-[160%]" />
+                            <BlueCapsuleMarker className="-inset-x-2 -inset-y-1.5 w-[calc(100%+16px)] h-[calc(100%+12px)]" />
                           </div>
 
                           <div className="px-3.5 py-1.5 opacity-70 text-[11px]">Kısayol ekle</div>
@@ -388,7 +310,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                         </motion.div>
                       )}
 
-                      {/* ANDROID STEP 3: "Medya eklensin mi?" Dialog */}
+                      {/* ANDROID STEP 3: "Medya eklensin mi?" Dialog with Blue Marker around MEDYASIZ */}
                       {currentStep === 3 && (
                         <motion.div
                           initial={{ opacity: 0, scale: 0.95 }}
@@ -407,9 +329,9 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                               </span>
                               
                               {/* TARGET: MEDYASIZ */}
-                              <div className="relative px-3 py-1.5 rounded-lg bg-[#00A884] text-white font-bold text-[11px] shadow-glow-emerald">
-                                <span>MEDYASIZ</span>
-                                <HandDrawnBlueMarker className="-inset-3 w-[130%] h-[180%]" />
+                              <div className="relative px-3.5 py-1.5 rounded-lg bg-[#00A884] text-white font-bold text-[11px] shadow-glow-emerald">
+                                <span className="relative z-10">MEDYASIZ</span>
+                                <BlueCapsuleMarker className="-inset-x-2 -inset-y-1.5 w-[calc(100%+16px)] h-[calc(100%+12px)]" />
                               </div>
                             </div>
                           </div>
@@ -446,13 +368,12 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.25 }}
                     className="flex-1 flex flex-col justify-between relative bg-black"
                   >
-                    {/* iOS STEP 0: Chat Screen */}
+                    {/* iOS STEP 0: Chat Screen with Blue Marker on Header */}
                     {currentStep === 0 && (
                       <div className="flex-1 flex flex-col justify-between">
-                        {/* iOS Header with Hand-Drawn Marker on Name */}
                         <div className="bg-[#161719] px-3 py-2 flex items-center justify-between border-b border-white/10 shrink-0">
                           <div className="flex items-center gap-1 text-white text-xs font-semibold">
                             <ChevronLeft className="w-4 h-4 -mr-1" />
@@ -461,10 +382,10 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
 
                           {/* Center: Tap Target for Contact Info */}
                           <div className="flex items-center gap-2 relative">
-                            <div className="w-7 h-7 rounded-full bg-[#A3704C] text-[#F3E5AB] text-[10px] font-bold flex items-center justify-center">
+                            <div className="w-7 h-7 rounded-full bg-[#A3704C] text-[#F3E5AB] text-[10px] font-bold flex items-center justify-center relative z-10">
                               MS
                             </div>
-                            <div className="text-left">
+                            <div className="text-left relative z-10">
                               <h5 className="text-xs font-bold text-white leading-tight">
                                 merve sarıcıvciv
                               </h5>
@@ -473,7 +394,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                               </span>
                             </div>
 
-                            <HandDrawnBlueMarker className="-inset-3 w-[120%] h-[180%]" />
+                            <BlueCapsuleMarker className="-inset-x-3 -inset-y-1.5 w-[calc(100%+24px)] h-[calc(100%+12px)]" />
                           </div>
 
                           <div className="flex items-center gap-2 text-white">
@@ -566,7 +487,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                           transition={{ repeat: Infinity, duration: 1.2 }}
                           className="text-center py-2 px-3 rounded-2xl bg-[#1C1C1E] border border-sky-400/40 text-[10px] font-mono font-bold text-sky-400 flex items-center justify-center gap-1.5 shadow-glow-blue"
                         >
-                          <span>⬇️ Aşağı Kaydırın (Scroll Down)</span>
+                          <span>⬇️ Aşağı Kaydırılıyor (Scroll Down)</span>
                         </motion.div>
                       </div>
                     )}
@@ -591,16 +512,16 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                           </div>
                         </div>
 
-                        {/* Actions List with Blue Hand-Drawn Ring */}
+                        {/* Actions List with Clean Blue Marker around Sohbeti dışa aktar */}
                         <div className="bg-[#1C1C1E] rounded-2xl divide-y divide-white/5 text-[11px]">
                           <div className="p-2 text-emerald-400">Kişiyi paylaş</div>
                           <div className="p-2 text-emerald-400">Favoriler'e ekle</div>
                           <div className="p-2 text-emerald-400">Listeye ekle</div>
                           
                           {/* TARGET: Sohbeti dışa aktar */}
-                          <div className="p-2.5 text-white font-bold relative bg-white/5">
-                            <span>Sohbeti dışa aktar</span>
-                            <HandDrawnBlueMarker className="-inset-2.5 w-[115%] h-[170%]" />
+                          <div className="p-2.5 text-white font-bold relative">
+                            <span className="relative z-10">Sohbeti dışa aktar</span>
+                            <BlueCapsuleMarker className="-inset-x-2.5 -inset-y-1.5 w-[calc(100%+20px)] h-[calc(100%+12px)]" />
                           </div>
 
                           <div className="p-2 text-red-400 opacity-70">Sohbeti temizle</div>
@@ -640,14 +561,14 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
                               <span>Medya ekle</span>
                             </div>
 
-                            {/* Option 2: Medyayı ekleme (TARGET with Blue Hand-Drawn Ring) */}
+                            {/* Option 2: Medyayı ekleme (TARGET with Clean Blue Capsule Marker) */}
                             <div className="p-3 rounded-2xl bg-[#2C2C2E] text-white font-bold text-xs flex items-center justify-between relative">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 relative z-10">
                                 <FileText className="w-4 h-4 text-white" />
                                 <span>Medyayı ekleme</span>
                               </div>
 
-                              <HandDrawnBlueMarker className="-inset-3 w-[120%] h-[180%]" />
+                              <BlueCapsuleMarker className="-inset-x-2 -inset-y-1.5 w-[calc(100%+16px)] h-[calc(100%+12px)]" />
                             </div>
                           </div>
                         </motion.div>
@@ -673,7 +594,7 @@ export const InteractivePhoneGuide: React.FC<InteractivePhoneGuideProps> = ({ on
 
       {/* Bottom Quick Upload Action */}
       {onUploadClick && (
-        <div className="mt-8 text-center relative z-10">
+        <div className="mt-6 text-center relative z-10">
           <Button
             variant="blue"
             size="lg"
