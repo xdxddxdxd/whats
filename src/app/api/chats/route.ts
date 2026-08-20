@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { parseWhatsAppChat } from '@/lib/parser/whatsapp-parser';
 import { calculateChatMetrics } from '@/lib/analytics/stats-engine';
 import { generateAIAnalysis } from '@/lib/ai/ai-service';
+import { extractSmartSample } from '@/lib/ai/smart-sampling';
+import { analyzeSentimentAndRoles } from '@/lib/ai/ai-engine';
 import { generateInviteCode, generatePin, generateOwnerToken } from '@/lib/utils/session';
 import { extractRawTextFromUpload } from '@/lib/utils/extract-chat-text';
 
@@ -49,26 +51,6 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServerSupabaseClient();
 
-    // 1. Check max 2 chats limit for this owner
-    const { count, error: countError } = await supabase
-      .from('chats')
-      .select('*', { count: 'exact', head: true })
-      .eq('owner_token', ownerToken);
-
-    if (countError) {
-      console.warn('Supabase count check error:', countError);
-    }
-
-    if ((count || 0) >= 2) {
-      return NextResponse.json(
-        {
-          error: 'Maksimum sohbet sınırına ulaştınız. Aynı anda en fazla 2 sohbet analiz edebilirsiniz. Yeni bir sohbet yüklemek için lütfen mevcut sohbetlerinizden birini silin.',
-          limitReached: true
-        },
-        { status: 403 }
-      );
-    }
-
     if (!file) {
       return NextResponse.json({ error: 'Lütfen bir WhatsApp sohbet dosyası (.txt veya .zip) seçin.' }, { status: 400 });
     }
@@ -96,73 +78,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Calculate Stats & Metrics
+    // 4. Calculate Stats & Metrics directly from 100% real parsed messages
     const metrics = calculateChatMetrics(parseResult.messages);
-
-    // 5. Generate AI Analysis & Wrapped Slides (with fast timeouts & smart fallback)
     const finalTitle = customTitle || parseResult.title || 'WhatsApp Sohbeti';
-    const aiAnalysis = await generateAIAnalysis(finalTitle, metrics, parseResult.chatType);
 
-    // 6. Insert Chat into Supabase
-    const { data: chat, error: chatError } = await supabase
-      .from('chats')
-      .insert({
-        owner_token: ownerToken,
-        title: finalTitle,
-        chat_type: parseResult.chatType,
-        total_messages: metrics.totalMessages,
-        total_participants: metrics.participants.length,
-        first_message_date: parseResult.firstDate ? parseResult.firstDate.toISOString() : null,
-        last_message_date: parseResult.lastDate ? parseResult.lastDate.toISOString() : null,
-        last_message_hash: parseResult.lastMessageHash || null
-      })
-      .select()
-      .single();
+    // 5. Extract Smart Sampling and generate AI Sentiment directly from real messages
+    const smartSample = extractSmartSample(parseResult.messages, 200);
 
-    if (chatError || !chat) {
-      return NextResponse.json({ error: chatError?.message || 'Sohbet kaydedilemedi.' }, { status: 500 });
-    }
-
-    // 7. Insert Invite Link & Fixed PIN, and Chat Analysis in Parallel
-    const inviteCode = generateInviteCode();
-    const passwordPin = generatePin();
-
-    const [inviteRes, analysisRes] = await Promise.all([
-      supabase.from('invites').insert({
-        chat_id: chat.id,
-        invite_code: inviteCode,
-        password_pin: passwordPin
-      }),
-      supabase.from('chat_analyses').insert({
-        chat_id: chat.id,
-        metrics: metrics as any,
-        superlatives: aiAnalysis.superlatives as any,
-        wrapped_slides: aiAnalysis.wrappedSlides as any,
-        ai_summary: aiAnalysis.summary,
-        version: 1
-      })
-    ]);
-
-    if (inviteRes.error) {
-      console.warn('Invite creation notice:', inviteRes.error);
-    }
-    if (analysisRes.error) {
-      console.warn('Analysis creation notice:', analysisRes.error);
-    }
-
-    return NextResponse.json({
-      success: true,
-      owner_token: ownerToken,
-      chat: {
-        ...chat,
-        invite: {
-          invite_code: inviteCode,
-          password_pin: passwordPin
-        }
-      }
-    });
-  } catch (err: any) {
-    console.error('Upload handler error:', err);
-    return NextResponse.json({ error: err.message || 'Analiz sırasında beklenmeyen bir hata oluştu.' }, { status: 500 });
-  }
-}
+    const [aiAnalysis, sentimentResult] = await Promise.all([\n      generateAIAnalysis(finalTitle, metrics, parseResult.chatType),\n      analyzeSentimentAndRoles(finalTitle, metrics, smartSample)\n    ]);\n\n    const enrichedMetrics = {\n      ...metrics,\n      sentiment: sentimentResult\n    };\n\n    // 6. Insert Chat into Supabase\n    const { data: chat, error: chatError } = await supabase\n      .from('chats')\n      .insert({\n        owner_token: ownerToken,\n        title: finalTitle,\n        chat_type: parseResult.chatType,\n        total_messages: metrics.totalMessages,\n        total_participants: metrics.participants.length,\n        first_message_date: parseResult.firstDate ? parseResult.firstDate.toISOString() : null,\n        last_message_date: parseResult.lastDate ? parseResult.lastDate.toISOString() : null,\n        last_message_hash: parseResult.lastMessageHash || null\n      })\n      .select()\n      .single();\n\n    if (chatError || !chat) {\n      return NextResponse.json({ error: chatError?.message || 'Sohbet kaydedilemedi.' }, { status: 500 });\n    }\n\n    // 7. Insert Invite Link & Fixed PIN, and Chat Analysis in Parallel\n    const inviteCode = generateInviteCode();\n    const passwordPin = generatePin();\n\n    const [inviteRes, analysisRes] = await Promise.all([\n      supabase.from('invites').insert({\n        chat_id: chat.id,\n        invite_code: inviteCode,\n        password_pin: passwordPin,\n        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),\n      }),\n      supabase.from('chat_analyses').insert({\n        chat_id: chat.id,\n        metrics: enrichedMetrics as any,\n        superlatives: aiAnalysis.superlatives as any,\n        wrapped_slides: aiAnalysis.wrappedSlides as any,\n        ai_summary: aiAnalysis.summary,\n        version: 1\n      })\n    ]);\n\n    if (inviteRes.error) {\n      console.warn('Invite creation notice:', inviteRes.error);\n    }\n    if (analysisRes.error) {\n      console.warn('Analysis creation notice:', analysisRes.error);\n    }\n\n    return NextResponse.json({\n      success: true,\n      owner_token: ownerToken,\n      chat: {\n        ...chat,\n        invite: {\n          invite_code: inviteCode,\n          password_pin: passwordPin\n        }\n      }\n    });\n  } catch (err: any) {\n    console.error('Upload handler error:', err);\n    return NextResponse.json({ error: err.message || 'Analiz sırasında beklenmeyen bir hata oluştu.' }, { status: 500 });\n  }\n}\n

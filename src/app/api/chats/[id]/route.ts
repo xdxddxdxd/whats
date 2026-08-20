@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { assertChatAccess, ApiError } from '@/lib/supabase/guards';
 
 export async function GET(
   request: NextRequest,
@@ -13,56 +14,8 @@ export async function GET(
 
     const supabase = createServerSupabaseClient();
 
-    // 1. Fetch Chat
-    const { data: chatData, error: chatError } = await supabase
-      .from('chats')
-      .select('*, invites(invite_code, password_pin)')
-      .eq('id', chatId)
-      .single();
-
-    const chat = chatData as any;
-
-    if (chatError || !chat) {
-      return NextResponse.json({ error: 'Sohbet bulunamadı.' }, { status: 404 });
-    }
-
-    const isOwner = !!ownerToken && chat.owner_token === ownerToken;
-
-    // 2. If not owner, verify guest session
-    if (!isOwner) {
-      if (!guestToken) {
-        return NextResponse.json({ error: 'Bu sohbeti görüntülemek için davet kodu veya şifre ile giriş yapmalısınız.' }, { status: 401 });
-      }
-
-      const { data: guestData, error: guestError } = await supabase
-        .from('guest_sessions')
-        .select('*')
-        .eq('chat_id', chatId)
-        .eq('session_token', guestToken)
-        .single();
-
-      const guest = guestData as any;
-
-      if (guestError || !guest) {
-        return NextResponse.json({ error: 'Geçersiz davetli oturumu. Lütfen tekrar giriş yapın.' }, { status: 401 });
-      }
-
-      if (guest.is_revoked) {
-        return NextResponse.json(
-          {
-            error: 'Bu sohbete erişiminiz sohbet sahibi tarafından kaldırılmıştır.',
-            isRevoked: true
-          },
-          { status: 403 }
-        );
-      }
-
-      // Update last active
-      await supabase
-        .from('guest_sessions')
-        .update({ last_active_at: new Date().toISOString() })
-        .eq('id', guest.id);
-    }
+    // 1. Verify Access via central guard
+    const { chat, isOwner } = await assertChatAccess(supabase, chatId, { ownerToken, guestToken });
 
     // 3. Fetch Analyses
     const { data: analysis, error: analysisError } = await supabase
@@ -94,6 +47,9 @@ export async function GET(
       isOwner
     });
   } catch (err: any) {
+    if (err instanceof ApiError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
     return NextResponse.json({ error: err.message || 'Sunucu hatası' }, { status: 500 });
   }
 }

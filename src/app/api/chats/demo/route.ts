@@ -17,22 +17,6 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServerSupabaseClient();
 
-    // Check 2 chats limit
-    const { count } = await supabase
-      .from('chats')
-      .select('*', { count: 'exact', head: true })
-      .eq('owner_token', ownerToken);
-
-    if ((count || 0) >= 2) {
-      return NextResponse.json(
-        {
-          error: 'Maksimum sohbet sınırına ulaştınız (En fazla 2 sohbet). Demo yüklemek için mevcut sohbetlerden birini silin.',
-          limitReached: true
-        },
-        { status: 403 }
-      );
-    }
-
     // Parse demo text
     const parseResult = parseWhatsAppChat(DEMO_CHAT_TEXT, DEMO_CHAT_TITLE);
     const metrics = calculateChatMetrics(parseResult.messages);
@@ -64,7 +48,8 @@ export async function POST(request: NextRequest) {
     await supabase.from('invites').insert({
       chat_id: chat.id,
       invite_code: inviteCode,
-      password_pin: passwordPin
+      password_pin: passwordPin,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     });
 
     await supabase.from('chat_analyses').insert({
@@ -82,7 +67,8 @@ export async function POST(request: NextRequest) {
         ...chat,
         invite: {
           invite_code: inviteCode,
-          password_pin: passwordPin
+          password_pin: passwordPin,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
         }
       }
     });
