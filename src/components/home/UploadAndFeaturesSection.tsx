@@ -342,7 +342,7 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
               </div>
               <div>
                 <h4 className="text-base font-bold text-white">Spotify Wrapped Tarzı Story</h4>
-                <span className="text-[11px] text-[#38BDF8] font-mono">7 İnteraktif Slayt & PDF Albümü</span>
+                <span className="text-xs text-sky-400 font-medium">7 İnteraktif Slayt & PDF Albümü</span>
               </div>
             </div>
             <p className="text-xs text-[#94A3B8] leading-relaxed font-sans pt-1">
@@ -358,7 +358,7 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
               </div>
               <div>
                 <h4 className="text-base font-bold text-white">Grup Kişilik & Geyik Ödülleri</h4>
-                <span className="text-[11px] text-[#38BDF8] font-mono">Trip Şampiyonu 🎭 • Dedikodu ☕ • Hayalet 👻</span>
+                <span className="text-xs text-sky-400 font-medium">Trip Şampiyonu 🎭 • Dedikodu ☕ • Hayalet 👻</span>
               </div>
             </div>
             <p className="text-xs text-[#94A3B8] leading-relaxed font-sans pt-1">
@@ -374,7 +374,7 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
               </div>
               <div>
                 <h4 className="text-base font-bold text-white">Sıfır Metin Saklama & Şifreli Giriş</h4>
-                <span className="text-[11px] text-[#38BDF8] font-mono">%100 Gizli & Şifreli Erişim</span>
+                <span className="text-xs text-sky-400 font-medium">%100 Gizli & Şifreli Erişim</span>
               </div>
             </div>
             <p className="text-xs text-[#94A3B8] leading-relaxed font-sans pt-1">
@@ -390,7 +390,7 @@ export const UploadAndFeaturesSection: React.FC<UploadAndFeaturesSectionProps> =
               </div>
               <div>
                 <h4 className="text-base font-bold text-white">Artımlı Güncelleme & AI Soru Sorma</h4>
-                <span className="text-[11px] text-[#38BDF8] font-mono">Delta Tracker • 5 Soru Limitli AI</span>
+                <span className="text-xs text-sky-400 font-medium">Delta Tracker • 5 Soru Limitli AI</span>
               </div>
             </div>
             <p className="text-xs text-[#94A3B8] leading-relaxed font-sans pt-1">

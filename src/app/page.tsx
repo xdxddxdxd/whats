@@ -8,6 +8,7 @@ import { BentoHero } from '@/components/home/BentoHero';
 import { UploadAndFeaturesSection } from '@/components/home/UploadAndFeaturesSection';
 import { InteractiveFaq } from '@/components/home/InteractiveFaq';
 import { HowToExportGuideModal } from '@/components/home/HowToExportGuideModal';
+import { CorporateFooter } from '@/components/home/CorporateFooter';
 import { Button } from '@/components/ui/Button';
 
 export default function HomePage() {
@@ -157,16 +158,8 @@ export default function HomePage() {
         onReadyToUpload={scrollToUpload}
       />
 
-      {/* Footer */}
-      <footer className="border-t border-white/10 bg-[#050608] py-12 mt-28 relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#64748B]">
-          <div className="flex items-center gap-2.5">
-            <span className="font-bold text-sm text-white">WHATS</span>
-            <span>✦ WhatsApp Sohbet Analiz & Yıllık Özet (Wrapped)</span>
-          </div>
-          <p>© 2026 WHATS. Arkadaş grupları için tasarlanmıştır.</p>
-        </div>
-      </footer>
+      {/* Corporate & Legal Footer */}
+      <CorporateFooter onOpenGuide={() => setIsGuideOpen(true)} />
 
     </main>
   );

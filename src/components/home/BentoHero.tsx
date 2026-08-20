@@ -34,7 +34,7 @@ export const BentoHero: React.FC<BentoHeroProps> = ({
         {/* Headline */}
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.12]">
           Sohbetinizin gizli dünyasını ve{' '}
-          <span className="text-[#38BDF8] font-caveat font-bold text-5xl sm:text-6xl lg:text-7xl tracking-normal decoration-[#38BDF8]/40 underline underline-offset-8 inline-block px-1">
+          <span className="bg-gradient-to-r from-[#38BDF8] via-[#60A5FA] to-[#818CF8] bg-clip-text text-transparent font-extrabold tracking-tight">
             ikonik anlarını
           </span>{' '}
           keşfedin.
